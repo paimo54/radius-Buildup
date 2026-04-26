@@ -18,6 +18,7 @@ import (
 	"radius-buildup/internal/modules/health"
 	"radius-buildup/internal/modules/hotspot"
 	"radius-buildup/internal/modules/mikrotik"
+	"radius-buildup/internal/modules/olt"
 	"radius-buildup/internal/modules/payment"
 	"radius-buildup/internal/modules/pppoe"
 	"radius-buildup/internal/modules/router"
@@ -83,6 +84,7 @@ func main() {
 			mikrotik.RegisterRoutes(protected)
 			payment.RegisterRoutes(protected)
 			whatsapp.RegisterRoutes(protected)
+			olt.RegisterRoutes(protected)
 		}
 	}
 
@@ -90,7 +92,7 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"name":    cfg.AppName,
-			"version": "0.9.0",
+			"version": "1.0.0",
 			"engine":  "Go + Gin",
 			"docs":    fmt.Sprintf("http://localhost:%s/api/health", cfg.Port),
 		})
