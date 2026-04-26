@@ -1,0 +1,103 @@
+# OpenSSL Configuration for FreeRADIUS MS-CHAP Support
+# =====================================================
+#
+# This is an example openssl.cnf file with LEGACY PROVIDER ENABLED.
+# This is REQUIRED for FreeRADIUS MS-CHAP authentication on OpenSSL 3.0+
+#
+# LOCATION: /etc/ssl/openssl.cnf (Ubuntu 22.04)
+#
+# The key changes from default are in [openssl_init], [provider_sect], 
+# [legacy_sect], and [default_sect] sections.
+#
+# To verify MD4 is working after configuration:
+#   echo -n 'test' | openssl dgst -md4
+#
+# If you see a hash output instead of "unknown option", MD4 is enabled.
+#
+
+# ===== KEY SECTIONS TO MODIFY =====
+
+# Section 1: Ensure openssl_conf points to openssl_init
+#
+# Near the top of the file, ensure this line exists:
+# openssl_conf = openssl_init
+
+# Section 2: Define openssl_init to load providers
+#
+# [openssl_init]
+# providers = provider_sect
+# ssl_conf = ssl_sect
+
+# Section 3: Enable legacy and default providers
+#
+# [provider_sect]
+# legacy = legacy_sect
+# default = default_sect
+
+# Section 4: Activate legacy provider (THIS IS THE KEY FIX!)
+#
+# [legacy_sect]
+# activate = 1
+
+# Section 5: Activate default provider
+#
+# [default_sect]
+# activate = 1
+
+# ===== FULL WORKING EXAMPLE SECTIONS =====
+
+# Add/modify these sections in your /etc/ssl/openssl.cnf:
+
+#--------------------------------------------------------------
+# openssl_conf = openssl_init  # At the top of the file
+#
+# [openssl_init]
+# providers = provider_sect
+# ssl_conf = ssl_sect
+#
+# [provider_sect]
+# legacy = legacy_sect
+# default = default_sect
+#
+# [legacy_sect]
+# activate = 1
+#
+# [default_sect]
+# activate = 1
+#--------------------------------------------------------------
+
+# ===== AUTOMATED FIX SCRIPT =====
+#
+# This is included in vps-install.sh and vps-install-local.sh:
+#
+# # Enable OpenSSL legacy provider for MD4 (required for MS-CHAP)
+# if ! grep -q "^legacy = legacy_sect" /etc/ssl/openssl.cnf; then
+#     # Check if [openssl_init] section exists
+#     if grep -q "^\[openssl_init\]" /etc/ssl/openssl.cnf; then
+#         # Section exists, ensure providers line is there
+#         if ! grep -q "^providers = provider_sect" /etc/ssl/openssl.cnf; then
+#             sed -i '/^\[openssl_init\]/a providers = provider_sect' /etc/ssl/openssl.cnf
+#         fi
+#     else
+#         # Add openssl_init section if not exists
+#         echo -e "\n[openssl_init]\nproviders = provider_sect\n" >> /etc/ssl/openssl.cnf
+#     fi
+#     
+#     # Add provider sections if not exists
+#     if ! grep -q "^\[provider_sect\]" /etc/ssl/openssl.cnf; then
+#         cat >> /etc/ssl/openssl.cnf << 'PROVIDER_EOF'
+# 
+# [provider_sect]
+# legacy = legacy_sect
+# default = default_sect
+# 
+# [legacy_sect]
+# activate = 1
+# 
+# [default_sect]
+# activate = 1
+# PROVIDER_EOF
+#     fi
+# fi
+#
+# ===== END OF EXAMPLE =====

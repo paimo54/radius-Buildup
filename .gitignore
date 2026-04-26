@@ -1,0 +1,111 @@
+# Mobile app (Flutter) - tidak perlu di-push ke GitHub
+mobile-app/
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js / build outputs
+.next/
+out/
+build/
+dist/
+
+# Testing outputs
+coverage/
+test-results/
+
+# Logs
+logs/
+*.log
+build-error.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
+
+# Local env files
+.env
+.env*.local
+
+# Runtime user-uploaded files — jangan di-commit, JANGAN dihapus saat update
+public/uploads/
+data/uploads/
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.fleet/
+.vscode-test/
+
+# OS
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# PM2 runtime files
+.pm2
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Backup / temporary files
+/backup/
+/backups/
+tmp/
+temp/
+*.tmp
+*.sql
+*.backup
+*.bak
+*.old
+
+# Prisma local databases
+prisma/*.db
+prisma/*.db-journal
+
+# Cache
+.cache/
+.parcel-cache/
+.turbo/
+.github-cache/
+
+# Reference folder — not part of production
+billing-radius/
+
+# Manual debug artifacts
+capture-result.txt
+chr-nat-result.txt
+fix-chr-result.txt
+fresh-test.txt
+test-result-output.txt
+test3-result.txt
+
+# Vercel
+.vercel
+
+# Firebase / Google credentials (jangan di-commit)
+*firebase-service-account*.json
+salfanet-radius-firebase-adminsdk*.json
+google-services.json
+google-services-desktop.json
+*-adminsdk-*.json
+GoogleService-Info.plist
+
+# Go backend
+backend/tmp/
+backend/*.exe
+backend/*.exe~
+backend/*.dll
+backend/*.so
+backend/*.dylib

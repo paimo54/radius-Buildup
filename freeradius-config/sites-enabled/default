@@ -1,0 +1,79 @@
+server default {
+    listen {
+        type = auth
+        ipaddr = *
+        port = 0
+    }
+
+    listen {
+        type = acct
+        ipaddr = *
+        port = 0
+    }
+
+    authorize {
+        #filter_username # DISABLED - causes realm suffix issues with PPPoE users
+        preprocess
+        chap
+        mschap
+        files
+        #
+        # REST authorize: cek status user/voucher ke Next.js app SEBELUM autentikasi.
+        # "-rest" berarti jika REST gagal/timeout, lanjut proses normal (non-fatal).
+        # Jika user kadaluarsa/diblokir, REST set Auth-Type=Reject + Reply-Message.
+        # PENTING: Reply-Message muncul di BROWSER HOTSPOT LOGIN, bukan di log MikroTik.
+        # (MikroTik log selalu "invalid username or password" untuk semua Access-Reject)
+        #
+        -rest
+        sql
+        expiration
+        pap
+    }
+
+    authenticate {
+        Auth-Type PAP {
+            pap
+        }
+        Auth-Type CHAP {
+            chap
+        }
+        # IMPORTANT: Use lowercase 'mschap' NOT 'MS-CHAP'
+        # FreeRADIUS 3.x requires lowercase Auth-Type names
+        Auth-Type mschap {
+            mschap
+        }
+    }
+
+    preacct {
+        preprocess
+        acct_unique
+    }
+
+    accounting {
+        sql
+        # REST module: update Redis online-users real-time (non-blocking)
+        # Calls /api/radius/accounting to track Start/Stop/Interim
+        # '-rest' = non-fatal: if the app is not running, accounting still succeeds
+        -rest
+    }
+
+    post-auth {
+        update reply {
+            # Kirim Accounting-Interim-Update setiap 5 menit
+            # MikroTik akan sync sesi ke RADIUS setiap interval ini
+            # Stale session threshold di pppoe-session-sync.ts = 30 menit (6x interval)
+            Acct-Interim-Interval = 300
+        }
+        sql
+        #
+        # REST post-auth: set firstLoginAt, expiresAt, dan buat transaksi keuangan real-time
+        # '-rest' = non-fatal: jika app tidak berjalan, autentikasi tetap berhasil
+        #
+        -rest
+
+        Post-Auth-Type REJECT {
+            sql
+            attr_filter.access_reject
+        }
+    }
+}

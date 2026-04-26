@@ -1,0 +1,16 @@
+# Production: Allow all
+User-agent: *
+Allow: /
+
+# Block admin, API, and customer areas
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /customer/
+Disallow: /technician/
+Disallow: /pay-manual/
+Disallow: /pay/
+Disallow: /login
+
+# Sitemap (optional - create if needed)
+# Sitemap: https://yourdomain.com/sitemap.xml

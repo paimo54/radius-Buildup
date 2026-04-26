@@ -1,0 +1,76 @@
+rest {
+	#
+	#  TLS configuration - disabled for local HTTP connection
+	#
+	tls {
+		check_cert = no
+		check_cert_cn = no
+	}
+
+	#
+	#  Base URI of the Next.js app.
+	#  Will be set automatically by installer to http://localhost:3000
+	#
+	connect_uri = "http://localhost:3000"
+
+	#
+	#  Authorize - dipanggil SEBELUM autentikasi untuk cek status user/voucher
+	#  Mengembalikan Reply-Message yang tepat jika user kadaluarsa/diblokir,
+	#  sehingga MikroTik menampilkan pesan yang benar di log (bukan "wrong password").
+	#
+	#  Response format (dari /api/radius/authorize):
+	#    Reject:  { "control:Auth-Type": "Reject", "reply:Reply-Message": "Pesan" }
+	#    Allow:   { "success": true, "action": "allow" }
+	#
+	authorize {
+		uri = "${..connect_uri}/api/radius/authorize"
+		method = "post"
+		body = "json"
+		data = "{ \"username\": \"%{User-Name}\", \"nasIp\": \"%{NAS-IP-Address}\", \"nasPort\": \"%{NAS-Port}\", \"calledStationId\": \"%{Called-Station-Id}\" }"
+
+		tls = ${..tls}
+	}
+
+	#
+	#  Post-Auth - dipanggil SETELAH autentikasi berhasil
+	#  Tujuan: set firstLoginAt + expiresAt + buat transaksi keuangan real-time
+	#
+	post-auth {
+		uri = "${..connect_uri}/api/radius/post-auth"
+		method = "post"
+		body = "json"
+		data = "{ \"username\": \"%{User-Name}\", \"reply\": \"Access-Accept\", \"nasIp\": \"%{NAS-IP-Address}\" }"
+
+		tls = ${..tls}
+	}
+
+	#
+	#  Accounting - dipanggil FreeRADIUS setiap ada Start/Stop/Interim
+	#  Tujuan: update Redis online-users secara real-time
+	#
+	accounting {
+		uri = "${..connect_uri}/api/radius/accounting"
+		method = "post"
+		body = "json"
+		data = "{ \"username\": \"%{User-Name}\", \"statusType\": \"%{Acct-Status-Type}\", \"sessionId\": \"%{Acct-Session-Id}\", \"nasIp\": \"%{NAS-IP-Address}\", \"framedIp\": \"%{Framed-IP-Address}\", \"callingStationId\": \"%{Calling-Station-Id}\", \"sessionTime\": \"%{Acct-Session-Time}\", \"inputOctets\": \"%{Acct-Input-Octets}\", \"outputOctets\": \"%{Acct-Output-Octets}\" }"
+
+		tls = ${..tls}
+	}
+
+	#
+	#  Max connections / pool settings
+	#  start=0 and min=0 are critical: FreeRADIUS must not try to pre-create
+	#  HTTP connections at startup — the Next.js app may not be running yet.
+	#  Connections are made lazily on first RADIUS request instead.
+	#
+	pool {
+		start = 0
+		min = 0
+		max = 10
+		spare = 3
+		uses = 0
+		retry_delay = 30
+		lifetime = 0
+		idle_timeout = 60
+	}
+}

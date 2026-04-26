@@ -1,0 +1,84 @@
+import 'server-only'
+import { prisma } from '@/server/db/client';
+
+/**
+ * Generate invoice number dengan format: INV-YYYYMM-XXXX
+ * Contoh: INV-202512-0001
+ */
+export async function generateInvoiceNumber(): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const prefix = `INV-${year}${month}-`;
+
+  // Get count of invoices for this month
+  const count = await prisma.invoice.count({
+    where: {
+      invoiceNumber: {
+        startsWith: prefix,
+      },
+    },
+  });
+
+  // Generate invoice number with incremented counter
+  const invoiceNumber = `${prefix}${String(count + 1).padStart(4, '0')}`;
+  
+  return invoiceNumber;
+}
+
+/**
+ * Generate transaction ID dengan format: TRX-YYYYMMDD-HHMMSS-XXXX
+ * Contoh: TRX-20251219-153045-0001
+ */
+export async function generateTransactionId(): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  
+  const dateStr = `${year}${month}${day}`;
+  const timeStr = `${hours}${minutes}${seconds}`;
+  const prefix = `TRX-${dateStr}-${timeStr}-`;
+
+  // Random 4 digit untuk uniqueness
+  const random = Math.floor(1000 + Math.random() * 9000);
+  
+  return `${prefix}${random}`;
+}
+
+/**
+ * Generate category ID dengan format: CAT-YYYYMMDD-HHMMSS
+ * Contoh: CAT-20251219-153045
+ */
+export function generateCategoryId(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  
+  return `CAT-${year}${month}${day}-${hours}${minutes}${seconds}`;
+}
+
+/**
+ * Generate invoice ID dengan format: inv-YYYYMMDD-HHMMSS-XXXX
+ * Contoh: inv-20251219-153045-1234
+ */
+export function generateInvoiceId(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  
+  const random = Math.floor(1000 + Math.random() * 9000);
+  
+  return `inv-${year}${month}${day}-${hours}${minutes}${seconds}-${random}`;
+}

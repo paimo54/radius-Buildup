@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Salfanet Radius — Install Wizard</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #334155;
+    --border: #475569; --text: #e2e8f0; --muted: #94a3b8;
+    --accent: #3b82f6; --accent-hover: #2563eb;
+    --green: #22c55e; --green-bg: #052e16; --green-border: #166534;
+    --yellow: #eab308; --yellow-bg: #422006; --yellow-border: #854d0e;
+    --red: #ef4444; --red-bg: #450a0a; --red-border: #991b1b;
+    --cyan: #06b6d4; --purple: #a855f7;
+    --code-bg: #0c1222; --code-border: #1e3a5f;
+    --radius: 10px; --shadow: 0 4px 24px rgba(0,0,0,.4);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Segoe UI',system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.6; }
+  a { color:var(--accent); text-decoration:none; }
+  a:hover { text-decoration:underline; }
+
+  /* Layout */
+  .wrapper { display:flex; min-height:100vh; }
+  .sidebar { width:280px; background:var(--surface); border-right:1px solid var(--border); position:fixed; top:0; left:0; height:100vh; overflow-y:auto; z-index:100; transition:transform .3s; }
+  .main { margin-left:280px; flex:1; min-width:0; }
+  .content { max-width:900px; margin:0 auto; padding:32px 40px 80px; }
+
+  /* Sidebar */
+  .sidebar-header { padding:20px; border-bottom:1px solid var(--border); text-align:center; }
+  .sidebar-header h2 { font-size:16px; color:var(--accent); margin-bottom:2px; }
+  .sidebar-header small { color:var(--muted); font-size:12px; }
+  .nav { padding:12px 0; }
+  .nav-group { padding:4px 16px; margin-top:8px; }
+  .nav-group-label { font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--muted); margin-bottom:4px; }
+  .nav a { display:flex; align-items:center; gap:10px; padding:8px 16px; color:var(--muted); font-size:13px; border-radius:6px; margin:1px 8px; transition:all .15s; }
+  .nav a:hover { background:var(--surface2); color:var(--text); text-decoration:none; }
+  .nav a.active { background:var(--accent); color:#fff; }
+  .nav .num { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:50%; background:var(--surface2); font-size:11px; font-weight:700; flex-shrink:0; }
+  .nav a.active .num { background:rgba(255,255,255,.2); }
+  .nav a.done .num { background:var(--green); color:#fff; }
+
+  /* Mobile toggle */
+  .menu-toggle { display:none; position:fixed; top:12px; left:12px; z-index:200; background:var(--surface); border:1px solid var(--border); color:var(--text); padding:8px 12px; border-radius:8px; cursor:pointer; font-size:18px; }
+  @media(max-width:768px) {
+    .sidebar { transform:translateX(-100%); }
+    .sidebar.open { transform:translateX(0); }
+    .main { margin-left:0; }
+    .content { padding:24px 16px 60px; }
+    .menu-toggle { display:block; }
+  }
+
+  /* Typography */
+  h1 { font-size:28px; margin-bottom:8px; }
+  h2 { font-size:22px; margin:32px 0 12px; color:var(--cyan); border-bottom:1px solid var(--surface2); padding-bottom:8px; }
+  h3 { font-size:17px; margin:20px 0 8px; color:var(--purple); }
+  p { margin-bottom:12px; color:var(--muted); }
+  ul,ol { margin:8px 0 16px 20px; color:var(--muted); }
+  li { margin-bottom:4px; }
+
+  /* Cards */
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; margin:16px 0; }
+  .card-header { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .card-header .icon { font-size:24px; }
+  .card-header h3 { margin:0; color:var(--text); font-size:16px; }
+
+  /* Code blocks */
+  .code-wrap { position:relative; margin:12px 0; }
+  .code-wrap pre { background:var(--code-bg); border:1px solid var(--code-border); border-radius:8px; padding:16px 48px 16px 16px; overflow-x:auto; font-family:'Cascadia Code','Fira Code','JetBrains Mono',monospace; font-size:13px; line-height:1.5; color:#c9d1d9; }
+  .code-wrap code { font-family:inherit; }
+  .copy-btn { position:absolute; top:8px; right:8px; background:var(--surface2); border:1px solid var(--border); color:var(--muted); padding:4px 10px; border-radius:6px; cursor:pointer; font-size:12px; transition:all .2s; }
+  .copy-btn:hover { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .copy-btn.copied { background:var(--green); color:#fff; border-color:var(--green); }
+
+  /* Inline code */
+  code:not(pre code) { background:var(--surface2); padding:2px 6px; border-radius:4px; font-size:13px; font-family:'Cascadia Code','Fira Code',monospace; }
+
+  /* Alerts */
+  .alert { border-radius:8px; padding:14px 16px; margin:12px 0; font-size:14px; display:flex; gap:10px; align-items:flex-start; }
+  .alert-icon { font-size:18px; flex-shrink:0; margin-top:1px; }
+  .alert-info { background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.3); }
+  .alert-warn { background:var(--yellow-bg); border:1px solid var(--yellow-border); color:var(--yellow); }
+  .alert-danger { background:var(--red-bg); border:1px solid var(--red-border); color:var(--red); }
+  .alert-success { background:var(--green-bg); border:1px solid var(--green-border); color:var(--green); }
+
+  /* Tables */
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:14px; }
+  th { background:var(--surface2); padding:10px 12px; text-align:left; font-weight:600; border-bottom:2px solid var(--border); }
+  td { padding:8px 12px; border-bottom:1px solid var(--border); color:var(--muted); }
+  tr:hover td { background:rgba(255,255,255,.02); }
+
+  /* Badge */
+  .badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600; }
+  .badge-green { background:var(--green-bg); color:var(--green); border:1px solid var(--green-border); }
+  .badge-yellow { background:var(--yellow-bg); color:var(--yellow); border:1px solid var(--yellow-border); }
+  .badge-red { background:var(--red-bg); color:var(--red); border:1px solid var(--red-border); }
+  .badge-blue { background:rgba(59,130,246,.15); color:var(--accent); border:1px solid rgba(59,130,246,.3); }
+
+  /* Tabs */
+  .tabs { display:flex; gap:4px; border-bottom:2px solid var(--surface2); margin-bottom:16px; }
+  .tab-btn { padding:8px 16px; background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all .15s; }
+  .tab-btn:hover { color:var(--text); }
+  .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  /* Section */
+  section { display:none; padding-top:20px; }
+  section.active { display:block; }
+
+  /* Progress bar */
+  .progress-bar { background:var(--surface2); height:6px; border-radius:3px; margin:16px 0; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--cyan)); border-radius:3px; transition:width .4s; }
+
+  /* Timeline */
+  .timeline { position:relative; padding-left:28px; margin:16px 0; }
+  .timeline::before { content:''; position:absolute; left:10px; top:4px; bottom:4px; width:2px; background:var(--surface2); }
+  .timeline-item { position:relative; margin-bottom:20px; }
+  .timeline-item::before { content:''; position:absolute; left:-22px; top:6px; width:12px; height:12px; border-radius:50%; background:var(--surface2); border:2px solid var(--border); }
+  .timeline-item.active::before { background:var(--accent); border-color:var(--accent); }
+  .timeline-item h4 { font-size:14px; color:var(--text); margin-bottom:4px; }
+  .timeline-item p { font-size:13px; margin-bottom:4px; }
+
+  /* Config form */
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; font-size:13px; color:var(--muted); margin-bottom:4px; font-weight:600; }
+  .form-group input, .form-group select { width:100%; padding:10px 12px; background:var(--code-bg); border:1px solid var(--code-border); border-radius:6px; color:var(--text); font-size:14px; font-family:inherit; }
+  .form-group input:focus, .form-group select:focus { outline:none; border-color:var(--accent); }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media(max-width:600px) { .form-row { grid-template-columns:1fr; } }
+
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border-radius:8px; border:none; font-size:14px; font-weight:600; cursor:pointer; transition:all .15s; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:var(--accent-hover); }
+  .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+  .btn-outline:hover { background:var(--surface2); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--surface2); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:var(--border); }
+
+  /* Highlight */
+  .hl-green { color:var(--green); }
+  .hl-yellow { color:var(--yellow); }
+  .hl-red { color:var(--red); }
+  .hl-cyan { color:var(--cyan); }
+  .hl-purple { color:var(--purple); }
+  .hl-blue { color:var(--accent); }
+</style>
+</head>
+<body>
+
+<button class="menu-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+<div class="wrapper">
+<!-- ==================== SIDEBAR ==================== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h2>⚡ Salfanet Radius</h2>
+    <small>Install Wizard v2.10.9</small>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="nav-group"><div class="nav-group-label">Persiapan</div></div>
+    <a href="#overview" class="active" data-section="overview"><span class="num">•</span> Overview</a>
+    <a href="#requirements" data-section="requirements"><span class="num">•</span> Requirements</a>
+    <a href="#config" data-section="config"><span class="num">•</span> Konfigurasi</a>
+    <div class="nav-group"><div class="nav-group-label">Instalasi</div></div>
+    <a href="#step1" data-section="step1"><span class="num">1</span> System Packages</a>
+    <a href="#step2" data-section="step2"><span class="num">2</span> Node.js 20</a>
+    <a href="#step3" data-section="step3"><span class="num">3</span> MySQL 8</a>
+    <a href="#step4" data-section="step4"><span class="num">4</span> Deploy Aplikasi</a>
+    <a href="#step5" data-section="step5"><span class="num">5</span> FreeRADIUS</a>
+    <a href="#step6" data-section="step6"><span class="num">6</span> Nginx</a>
+    <a href="#step7" data-section="step7"><span class="num">7</span> PM2 &amp; Build</a>
+    <a href="#step8" data-section="step8"><span class="num">8</span> Redis (Opsional)</a>
+    <a href="#step9" data-section="step9"><span class="num">9</span> Mobile APK</a>
+    <div class="nav-group"><div class="nav-group-label">Referensi</div></div>
+    <a href="#firewall" data-section="firewall"><span class="num">•</span> Firewall &amp; Ports</a>
+    <a href="#postinstall" data-section="postinstall"><span class="num">•</span> Post-Install</a>
+    <a href="#troubleshoot" data-section="troubleshoot"><span class="num">•</span> Troubleshoot</a>
+    <a href="#uninstall" data-section="uninstall"><span class="num">•</span> Uninstall</a>
+  </nav>
+</aside>
+
+<!-- ==================== MAIN CONTENT ==================== -->
+<main class="main">
+<div class="content">
+
+<!-- ===== OVERVIEW ===== -->
+<section id="overview" class="active">
+  <h1>🚀 Salfanet Radius — Install Wizard</h1>
+  <p>Panduan instalasi manual lengkap untuk deploy Salfanet Radius ISP Management di VPS Ubuntu.</p>
+
+  <div class="progress-bar"><div class="progress-fill" style="width:0%" id="progressFill"></div></div>
+
+  <div class="card">
+    <div class="card-header"><span class="icon">📋</span><h3>Ringkasan Instalasi</h3></div>
+    <div class="timeline">
+      <div class="timeline-item active"><h4>Step 1 — System Packages</h4><p>Install dependencies, kernel module, timezone, NTP</p></div>
+      <div class="timeline-item"><h4>Step 2 — Node.js 20 LTS</h4><p>Install Node.js via NodeSource PPA</p></div>
+      <div class="timeline-item"><h4>Step 3 — MySQL 8.0</h4><p>Install MySQL, buat database & user</p></div>
+      <div class="timeline-item"><h4>Step 4 — Deploy Aplikasi</h4><p>Copy files, .env, npm install, Prisma migrate, seed</p></div>
+      <div class="timeline-item"><h4>Step 5 — FreeRADIUS 3.x</h4><p>Install & konfigurasi RADIUS server + SQL module</p></div>
+      <div class="timeline-item"><h4>Step 6 — Nginx</h4><p>Reverse proxy ke Next.js port 3000</p></div>
+      <div class="timeline-item"><h4>Step 7 — PM2 & Build</h4><p>Install PM2, buat swap, build Next.js, start app</p></div>
+      <div class="timeline-item"><h4>Step 9 — Mobile APK (Opsional)</h4><p>Build APK customer Android</p></div>
+    </div>
+  </div>
+
+  <div class="alert alert-info"><span class="alert-icon">⏱</span><div>Estimasi waktu: <strong>25-30 menit</strong> tanpa APK, <strong>45-70 menit</strong> dengan APK build. Redis hanya +2 menit.</div></div>
+
+  <div class="card">
+    <div class="card-header"><span class="icon">🔧</span><h3>Instalasi Otomatis (1 Command)</h3></div>
+    <p>Jika tidak ingin manual, jalankan installer otomatis:</p>
+    <div class="code-wrap"><pre><code>cd /root/salfanet-radius/vps-install
+bash vps-installer.sh</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+    <p>Installer otomatis akan menjalankan semua step di bawah secara berurutan dengan UI interaktif.</p>
+  </div>
+</section>
+
+<!-- ===== REQUIREMENTS ===== -->
+<section id="requirements">
+  <h1>📦 System Requirements</h1>
+
+  <h2>Minimum Hardware</h2>
+  <table>
+    <tr><th>Resource</th><th>Minimum</th><th>Rekomendasi</th></tr>
+    <tr><td>CPU</td><td>1 core</td><td>2 core</td></tr>
+    <tr><td>RAM</td><td>2 GB</td><td>4 GB</td></tr>
+    <tr><td>Disk</td><td>15 GB</td><td>30 GB+</td></tr>
+    <tr><td>Network</td><td>Public IP / Cloudflare Tunnel</td><td>Static Public IP</td></tr>
+  </table>
+
+  <h2>Supported OS</h2>
+  <table>
+    <tr><th>OS</th><th>Status</th></tr>
+    <tr><td>Ubuntu 24.04 LTS</td><td><span class="badge badge-green">Recommended</span></td></tr>
+    <tr><td>Ubuntu 22.04 LTS</td><td><span class="badge badge-green">Supported</span></td></tr>
+    <tr><td>Ubuntu 20.04 LTS</td><td><span class="badge badge-yellow">Legacy</span></td></tr>
+    <tr><td>Debian 11/12</td><td><span class="badge badge-yellow">Experimental</span></td></tr>
+  </table>
+
+  <h2>Supported Environment</h2>
+  <table>
+    <tr><th>Environment</th><th>Catatan</th></tr>
+    <tr><td>VPS (KVM/Dedicated)</td><td>Full support, UFW aktif</td></tr>
+    <tr><td>Proxmox LXC</td><td>Perlu TUN/TAP device di host, UFW di-skip (pakai host firewall)</td></tr>
+    <tr><td>VM (VirtualBox/VMware)</td><td>Full support</td></tr>
+    <tr><td>Bare Metal</td><td>Full support</td></tr>
+  </table>
+
+  <div class="alert alert-warn"><span class="alert-icon">⚠️</span><div><strong>Proxmox LXC:</strong> Aktifkan TUN device di host: <code>echo "lxc.cgroup2.devices.allow: c 10:200 rwm" >> /etc/pve/lxc/&lt;CTID&gt;.conf</code> dan <code>echo "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file" >> /etc/pve/lxc/&lt;CTID&gt;.conf</code></div></div>
+
+  <h2>Software yang Akan Di-Install</h2>
+  <table>
+    <tr><th>Package</th><th>Versi</th><th>Fungsi</th></tr>
+    <tr><td>Node.js</td><td>20 LTS</td><td>JavaScript runtime</td></tr>
+    <tr><td>MySQL</td><td>8.0</td><td>Database server</td></tr>
+    <tr><td>FreeRADIUS</td><td>3.x</td><td>RADIUS authentication server</td></tr>
+    <tr><td>Nginx</td><td>latest</td><td>Reverse proxy & static files</td></tr>
+    <tr><td>PM2</td><td>latest</td><td>Process manager (Node.js)</td></tr>
+    <tr><td>strongSwan</td><td>latest</td><td>IPSec/L2TP VPN</td></tr>
+    <tr><td>xl2tpd</td><td>latest</td><td>L2TP daemon</td></tr>
+    <tr><td>Chrony</td><td>latest</td><td>NTP time sync</td></tr>
+    <tr><td>Certbot</td><td>latest</td><td>SSL/TLS certificates</td></tr>
+  </table>
+</section>
+
+<!-- ===== KONFIGURASI ===== -->
+<section id="config">
+  <h1>⚙️ Konfigurasi</h1>
+  <p>Sesuaikan nilai konfigurasi di bawah. Nilai ini akan digunakan di semua command pada step berikutnya.</p>
+
+  <div class="card">
+    <div class="card-header"><span class="icon">🌐</span><h3>Server</h3></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>IP Address VPS</label>
+        <input type="text" id="cfg-ip" value="" placeholder="203.0.113.10" oninput="updateAllCommands()">
+      </div>
+      <div class="form-group">
+        <label>Environment</label>
+        <select id="cfg-env" onchange="updateAllCommands()">
+          <option value="vps">VPS (KVM/Dedicated)</option>
+          <option value="lxc">Proxmox LXC</option>
+          <option value="vm">Virtual Machine</option>
+          <option value="bare">Bare Metal</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Domain (opsional) <small style="color:#7c8798">— untuk SSL via Let's Encrypt</small></label>
+        <input type="text" id="cfg-domain" value="" placeholder="radius.hotspotapp.net" oninput="updateAllCommands()">
+      </div>
+      <div class="form-group">
+        <label>Email SSL <small style="color:#7c8798">— untuk notifikasi Let's Encrypt</small></label>
+        <input type="text" id="cfg-sslemail" value="" placeholder="admin@hotspotapp.net" oninput="updateAllCommands()">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>App Directory</label>
+        <input type="text" id="cfg-appdir" value="/var/www/salfanet-radius" oninput="updateAllCommands()">
+      </div>
+      <div class="form-group">
+        <label>App User</label>
+        <input type="text" id="cfg-user" value="salfanet" oninput="updateAllCommands()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="icon">🗄️</span><h3>Database MySQL</h3></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Database Name</label>
+        <input type="text" id="cfg-dbname" value="salfanet_radius" oninput="updateAllCommands()">
+      </div>
+      <div class="form-group">
+        <label>Database User</label>
+        <input type="text" id="cfg-dbuser" value="salfanet_user" oninput="updateAllCommands()">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Database Password</label>
+        <input type="text" id="cfg-dbpass" value="salfanetradius123" oninput="updateAllCommands()">
+      </div>
+      <div class="form-group">
+        <label>MySQL Root Password</label>
+        <input type="text" id="cfg-rootpass" value="root123" oninput="updateAllCommands()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><span class="icon">🔐</span><h3>Aplikasi</h3></div>
+    <div class="form-group">
+      <label>NEXTAUTH_SECRET (min 32 karakter, random)</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="cfg-secret" value="" placeholder="Klik Generate →" style="flex:1" oninput="updateAllCommands()">
+        <button class="btn btn-outline" onclick="generateSecret()">🔑 Generate</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-info"><span class="alert-icon">💡</span><div>Semua command di step berikutnya akan otomatis menggunakan nilai konfigurasi di atas.</div></div>
+</section>
+
+<!-- ===== STEP 1: SYSTEM PACKAGES ===== -->
+<section id="step1">
+  <h1>Step 1 — System Packages</h1>
+  <p>Install semua system dependencies, kernel module, konfigurasi timezone dan NTP.</p>
+
+  <h2>1.1 Update System & Install Packages</h2>
+  <div class="code-wrap"><pre><code class="cmd">apt-get update && apt-get upgrade -y</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="code-wrap"><pre><code class="cmd">apt-get install -y \
+  curl wget git build-essential software-properties-common \
+  ufw nginx certbot python3-certbot-nginx \
+  sudo vim htop chrony ntpdate sshpass \
+  xl2tpd strongswan strongswan-pki \
+  libcharon-extra-plugins libstrongswan-standard-plugins</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>1.2 Setup PPP & TUN Device</h2>
+  <p>Diperlukan untuk VPN (L2TP/PPTP) dan PPPoE.</p>
+
+  <div class="code-wrap"><pre><code class="cmd"># Buat device /dev/ppp dan /dev/net/tun
+[ ! -e /dev/ppp ] && mknod /dev/ppp c 108 0 && chmod 600 /dev/ppp
+mkdir -p /dev/net
+[ ! -e /dev/net/tun ] && mknod /dev/net/tun c 10 200 && chmod 666 /dev/net/tun
+
+# Auto-load kernel modules
+cat > /etc/modules-load.d/ppp.conf << 'EOF'
+ppp_generic
+ppp_async
+ppp_mppe
+ppp_deflate
+l2tp_core
+l2tp_ppp
+l2tp_netlink
+tun
+EOF
+
+# Load modules sekarang
+for mod in ppp_generic ppp_async ppp_mppe ppp_deflate tun; do
+  modprobe $mod 2>/dev/null || true
+done
+
+# xl2tpd runtime directory
+mkdir -p /var/run/xl2tpd
+cat > /etc/tmpfiles.d/xl2tpd.conf << 'EOF'
+d /var/run/xl2tpd 0755 root root -
+EOF</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>1.3 Enable IP Forwarding</h2>
+  <div class="code-wrap"><pre><code class="cmd"># Tambahkan ke sysctl.conf
+cat >> /etc/sysctl.conf << 'EOF'
+
+# IP Forwarding - Salfanet Radius
+net.ipv4.ip_forward=1
+net.ipv6.conf.all.forwarding=1
+net.ipv4.tcp_syncookies=1
+net.ipv4.conf.all.accept_redirects=0
+net.ipv4.conf.all.send_redirects=0
+EOF
+
+sysctl -p</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>1.4 Timezone & NTP</h2>
+  <div class="code-wrap"><pre><code class="cmd"># Set timezone Asia/Jakarta (WIB)
+timedatectl set-timezone Asia/Jakarta
+
+# Konfigurasi NTP servers Indonesia
+cat > /etc/chrony/chrony.conf << 'EOF'
+server 0.id.pool.ntp.org iburst
+server 1.id.pool.ntp.org iburst
+server 2.id.pool.ntp.org iburst
+server 3.id.pool.ntp.org iburst
+server asia.pool.ntp.org iburst
+server time.google.com iburst
+server time.cloudflare.com iburst
+
+driftfile /var/lib/chrony/chrony.drift
+makestep 1.0 3
+rtcsync
+allow 127.0.0.1
+local stratum 10
+EOF
+
+systemctl restart chrony && systemctl enable chrony
+chronyc makestep
+hwclock --systohc</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="alert alert-success"><span class="alert-icon">✅</span><div>System packages selesai. Lanjut ke <strong>Step 2</strong>.</div></div>
+</section>
+
+<!-- ===== STEP 2: NODE.JS ===== -->
+<section id="step2">
+  <h1>Step 2 — Node.js 20 LTS</h1>
+
+  <div class="code-wrap"><pre><code class="cmd"># Install Node.js 20 via NodeSource
+curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+apt-get install -y nodejs</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h3>Verifikasi</h3>
+  <div class="code-wrap"><pre><code class="cmd">node --version   # Harus v20.x.x
+npm --version    # Harus v10.x.x</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h3>Optimasi npm untuk VPS</h3>
+  <div class="code-wrap"><pre><code class="cmd">npm config set fetch-timeout 600000
+npm config set fetch-retries 5
+npm config set fetch-retry-mintimeout 10000
+npm config set fetch-retry-maxtimeout 60000</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="alert alert-success"><span class="alert-icon">✅</span><div>Node.js terinstall. Lanjut ke <strong>Step 3</strong>.</div></div>
+</section>
+
+<!-- ===== STEP 3: MYSQL ===== -->
+<section id="step3">
+  <h1>Step 3 — MySQL 8.0</h1>
+
+  <h2>3.1 Install MySQL</h2>
+  <div class="code-wrap"><pre><code class="cmd">apt-get install -y mysql-server mysql-client
+systemctl start mysql && systemctl enable mysql</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>3.2 Secure MySQL</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="mysql -u root << 'SQLEOF'
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{rootpass}}';
+DELETE FROM mysql.user WHERE User='';
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+FLUSH PRIVILEGES;
+SQLEOF">mysql -u root << 'SQLEOF'
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'root123';
+DELETE FROM mysql.user WHERE User='';
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+FLUSH PRIVILEGES;
+SQLEOF</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>3.3 Buat Database & User</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="mysql -u root -p'{{rootpass}}' << 'SQLEOF'
+CREATE DATABASE IF NOT EXISTS {{dbname}} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '{{dbuser}}'@'localhost' IDENTIFIED BY '{{dbpass}}';
+GRANT ALL PRIVILEGES ON {{dbname}}.* TO '{{dbuser}}'@'localhost';
+FLUSH PRIVILEGES;
+SQLEOF">mysql -u root -p'root123' << 'SQLEOF'
+CREATE DATABASE IF NOT EXISTS salfanet_radius CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'salfanet_user'@'localhost' IDENTIFIED BY 'salfanetradius123';
+GRANT ALL PRIVILEGES ON salfanet_radius.* TO 'salfanet_user'@'localhost';
+FLUSH PRIVILEGES;
+SQLEOF</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>3.4 Set Timezone MySQL</h2>
+  <div class="code-wrap"><pre><code class="cmd">cat > /etc/mysql/mysql.conf.d/timezone.cnf << 'EOF'
+[mysqld]
+default-time-zone = '+07:00'
+log_bin_trust_function_creators = 1
+EOF
+
+systemctl restart mysql</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h3>Verifikasi</h3>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="mysql -u {{dbuser}} -p'{{dbpass}}' {{dbname}} -e 'SELECT NOW(), @@global.time_zone;'">mysql -u salfanet_user -p'salfanetradius123' salfanet_radius -e "SELECT NOW(), @@global.time_zone;"</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="alert alert-success"><span class="alert-icon">✅</span><div>MySQL siap. Lanjut ke <strong>Step 4</strong>.</div></div>
+</section>
+
+<!-- ===== STEP 4: DEPLOY APLIKASI ===== -->
+<section id="step4">
+  <h1>Step 4 — Deploy Aplikasi</h1>
+
+  <h2>4.1 Upload & Extract</h2>
+  <p>Upload ZIP production dari PC lokal ke VPS:</p>
+  <div class="code-wrap"><pre><code class="cmd"># Dari PC lokal (PowerShell/Terminal):
+scp salfanet-radius-v*.zip root@VPS_IP:/root/</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="# Di VPS:
+cd /root
+apt-get install -y unzip
+unzip salfanet-radius-v*.zip
+
+# Copy ke app directory
+mkdir -p {{appdir}}
+cp -r /root/salfanet-radius/* {{appdir}}/
+cp -r /root/salfanet-radius/.next {{appdir}}/ 2>/dev/null || true
+cp /root/salfanet-radius/.env* {{appdir}}/ 2>/dev/null || true"># Di VPS:
+cd /root
+apt-get install -y unzip
+unzip salfanet-radius-v*.zip
+
+# Copy ke app directory
+mkdir -p /var/www/salfanet-radius
+cp -r /root/salfanet-radius/* /var/www/salfanet-radius/
+cp -r /root/salfanet-radius/.next /var/www/salfanet-radius/ 2>/dev/null || true
+cp /root/salfanet-radius/.env* /var/www/salfanet-radius/ 2>/dev/null || true</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>4.2 Buat App User</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="# Buat user dedicated (opsional, bisa pakai root)
+useradd -r -m -s /bin/bash -d /home/{{user}} {{user}}
+usermod -aG sudo {{user}}"># Buat user dedicated (opsional, bisa pakai root)
+useradd -r -m -s /bin/bash -d /home/salfanet salfanet
+usermod -aG sudo salfanet</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>4.3 Buat File .env</h2>
+  <div class="alert alert-danger"><span class="alert-icon">🔒</span><div>File <code>.env</code> berisi kredensial sensitif. Pastikan permission <code>chmod 600</code>.</div></div>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cat > {{appdir}}/.env << 'EOF'
+DATABASE_URL=\"mysql://{{dbuser}}:{{dbpass}}@localhost:3306/{{dbname}}?connection_limit=10&pool_timeout=20\"
+TZ=\"Asia/Jakarta\"
+NEXT_PUBLIC_TIMEZONE=\"Asia/Jakarta\"
+NEXT_PUBLIC_APP_NAME=\"SALFANET RADIUS ISP\"
+NEXT_PUBLIC_APP_URL=\"{{appurl}}\"
+NEXTAUTH_SECRET=\"{{secret}}\"
+NEXTAUTH_URL=\"{{appurl}}\"
+NODE_ENV=\"production\"
+EOF
+
+chmod 600 {{appdir}}/.env">cat > /var/www/salfanet-radius/.env << 'EOF'
+DATABASE_URL="mysql://salfanet_user:salfanetradius123@localhost:3306/salfanet_radius?connection_limit=10&pool_timeout=20"
+TZ="Asia/Jakarta"
+NEXT_PUBLIC_TIMEZONE="Asia/Jakarta"
+NEXT_PUBLIC_APP_NAME="SALFANET RADIUS ISP"
+NEXT_PUBLIC_APP_URL="http://YOUR_VPS_IP"
+NEXTAUTH_SECRET="GENERATE_ME"
+NEXTAUTH_URL="http://YOUR_VPS_IP"
+NODE_ENV="production"
+EOF
+
+chmod 600 /var/www/salfanet-radius/.env</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>4.4 Upload Firebase Service Account</h2>
+  <div class="alert alert-warn"><span class="alert-icon">🔥</span><div>File ini <strong>TIDAK ada di ZIP</strong> (keamanan). Upload terpisah dari PC lokal:</div></div>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="# Dari PC lokal:
+scp src/lib/firebase-service-account.json root@{{ip}}:{{appdir}}/src/lib/"># Dari PC lokal:
+scp src/lib/firebase-service-account.json root@YOUR_VPS_IP:/var/www/salfanet-radius/src/lib/</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>4.5 Install Dependencies</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cd {{appdir}}
+npm install --production=false">cd /var/www/salfanet-radius
+npm install --production=false</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  <div class="alert alert-info"><span class="alert-icon">⏱</span><div>Proses ini bisa memakan waktu <strong>5-10 menit</strong> tergantung koneksi internet.</div></div>
+
+  <h2>4.6 Setup Prisma (Database Schema)</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cd {{appdir}}
+
+# Generate Prisma client
+npx prisma generate
+
+# Push schema ke database (buat tabel)
+npx prisma db push --accept-data-loss --skip-generate
+
+# Verifikasi tabel dibuat
+mysql -u {{dbuser}} -p'{{dbpass}}' {{dbname}} -e 'SHOW TABLES;'">cd /var/www/salfanet-radius
+
+# Generate Prisma client
+npx prisma generate
+
+# Push schema ke database (buat tabel)
+npx prisma db push --accept-data-loss --skip-generate
+
+# Verifikasi tabel dibuat
+mysql -u salfanet_user -p'salfanetradius123' salfanet_radius -e "SHOW TABLES;"</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>4.7 Seed Database (Data Awal)</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cd {{appdir}}
+
+# Seed semua data awal (admin user, permissions, templates)
+npx tsx prisma/seeds/seed-all.ts">cd /var/www/salfanet-radius
+
+# Seed semua data awal (admin user, permissions, templates)
+npx tsx prisma/seeds/seed-all.ts</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>4.8 Fix Permissions</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="chown -R {{user}}:{{user}} {{appdir}}
+find {{appdir}} -type f -exec chmod 644 {} \;
+find {{appdir}} -type d -exec chmod 755 {} \;
+chmod +x {{appdir}}/node_modules/.bin/*
+chmod +x {{appdir}}/node_modules/@prisma/engines/* 2>/dev/null || true">chown -R salfanet:salfanet /var/www/salfanet-radius
+find /var/www/salfanet-radius -type f -exec chmod 644 {} \;
+find /var/www/salfanet-radius -type d -exec chmod 755 {} \;
+chmod +x /var/www/salfanet-radius/node_modules/.bin/*
+chmod +x /var/www/salfanet-radius/node_modules/@prisma/engines/* 2>/dev/null || true</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="alert alert-success"><span class="alert-icon">✅</span><div>Aplikasi deployed. Lanjut ke <strong>Step 5</strong>.</div></div>
+</section>
+
+<!-- ===== STEP 5: FREERADIUS ===== -->
+<section id="step5">
+  <h1>Step 5 — FreeRADIUS 3.x</h1>
+
+  <h2>5.1 Install FreeRADIUS</h2>
+  <div class="code-wrap"><pre><code class="cmd">apt-get install -y freeradius freeradius-mysql freeradius-utils freeradius-rest
+systemctl stop freeradius</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>5.2 Detect Config Directory</h2>
+  <div class="code-wrap"><pre><code class="cmd"># Cari lokasi config FreeRADIUS
+FR_DIR=""
+for dir in /etc/freeradius/3.0 /etc/freeradius; do
+  [ -d "$dir" ] && FR_DIR="$dir" && break
+done
+echo "FreeRADIUS config: $FR_DIR"</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>5.3 Konfigurasi SQL Module</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cat > $FR_DIR/mods-available/sql << 'EOF'
+sql {
+    driver = \"rlm_sql_mysql\"
+    dialect = \"mysql\"
+    server = \"localhost\"
+    port = 3306
+    login = \"{{dbuser}}\"
+    password = \"{{dbpass}}\"
+    radius_db = \"{{dbname}}\"
+    read_clients = yes
+    client_table = \"nas\"
+    
+    pool {
+        start = 5
+        min = 3
+        max = 32
+        spare = 3
+        uses = 0
+        retry_delay = 30
+        lifetime = 0
+        idle_timeout = 60
+    }
+}
+EOF
+
+# Enable SQL module
+ln -sf $FR_DIR/mods-available/sql $FR_DIR/mods-enabled/sql">cat > $FR_DIR/mods-available/sql << 'EOF'
+sql {
+    driver = "rlm_sql_mysql"
+    dialect = "mysql"
+    server = "localhost"
+    port = 3306
+    login = "salfanet_user"
+    password = "salfanetradius123"
+    radius_db = "salfanet_radius"
+    read_clients = yes
+    client_table = "nas"
+    
+    pool {
+        start = 5
+        min = 3
+        max = 32
+        spare = 3
+        uses = 0
+        retry_delay = 30
+        lifetime = 0
+        idle_timeout = 60
+    }
+}
+EOF
+
+# Enable SQL module
+ln -sf $FR_DIR/mods-available/sql $FR_DIR/mods-enabled/sql</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>5.4 Konfigurasi REST Module</h2>
+  <div class="code-wrap"><pre><code class="cmd">cat > $FR_DIR/mods-available/rest << 'EOF'
+rest {
+    connect_uri = "http://localhost:3000"
+    connect_timeout = 5.0
+    
+    authorize {
+        uri = "${..connect_uri}/api/radius/authorize"
+        method = "post"
+        body = "json"
+        data = '{"username": "%{User-Name}", "nasIp": "%{NAS-IP-Address}"}'
+        tls = {}
+    }
+    
+    post-auth {
+        uri = "${..connect_uri}/api/radius/post-auth"
+        method = "post"
+        body = "json"
+        data = '{"username": "%{User-Name}", "reply": "%{reply:Packet-Type}", "nasIp": "%{NAS-IP-Address}", "framedIp": "%{reply:Framed-IP-Address}"}'
+        tls = {}
+    }
+    
+    accounting {
+        uri = "${..connect_uri}/api/radius/accounting"
+        method = "post"
+        body = "json"
+        data = '{"username": "%{User-Name}", "statusType": "%{Acct-Status-Type}", "sessionId": "%{Acct-Session-Id}", "nasIp": "%{NAS-IP-Address}", "framedIp": "%{Framed-IP-Address}", "sessionTime": "%{Acct-Session-Time}", "inputOctets": "%{Acct-Input-Octets}", "outputOctets": "%{Acct-Output-Octets}"}'
+        tls = {}
+    }
+}
+EOF</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="alert alert-info"><span class="alert-icon">💡</span><div>REST module akan di-enable SETELAH aplikasi running (Step 7). Jangan enable sekarang karena app belum start.</div></div>
+
+  <h2>5.5 Copy FreeRADIUS Config dari Project</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="# Copy konfigurasi dari project (sites, clients, policy)
+cp {{appdir}}/freeradius-config/clients.conf $FR_DIR/clients.conf 2>/dev/null
+cp {{appdir}}/freeradius-config/sites-available/default $FR_DIR/sites-available/default 2>/dev/null
+cp {{appdir}}/freeradius-config/policy.d/filter $FR_DIR/policy.d/filter 2>/dev/null"># Copy konfigurasi dari project (sites, clients, policy)
+cp /var/www/salfanet-radius/freeradius-config/clients.conf $FR_DIR/clients.conf 2>/dev/null
+cp /var/www/salfanet-radius/freeradius-config/sites-available/default $FR_DIR/sites-available/default 2>/dev/null
+cp /var/www/salfanet-radius/freeradius-config/policy.d/filter $FR_DIR/policy.d/filter 2>/dev/null</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>5.6 Setup Sudoers</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cat > /etc/sudoers.d/{{user}}-freeradius << 'EOF'
+{{user}} ALL=(ALL) NOPASSWD: /bin/systemctl restart freeradius
+{{user}} ALL=(ALL) NOPASSWD: /bin/systemctl start freeradius
+{{user}} ALL=(ALL) NOPASSWD: /bin/systemctl stop freeradius
+{{user}} ALL=(ALL) NOPASSWD: /bin/systemctl status freeradius
+EOF
+chmod 440 /etc/sudoers.d/{{user}}-freeradius">cat > /etc/sudoers.d/salfanet-freeradius << 'EOF'
+salfanet ALL=(ALL) NOPASSWD: /bin/systemctl restart freeradius
+salfanet ALL=(ALL) NOPASSWD: /bin/systemctl start freeradius
+salfanet ALL=(ALL) NOPASSWD: /bin/systemctl stop freeradius
+salfanet ALL=(ALL) NOPASSWD: /bin/systemctl status freeradius
+EOF
+chmod 440 /etc/sudoers.d/salfanet-freeradius</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>5.7 Test & Start FreeRADIUS</h2>
+  <div class="code-wrap"><pre><code class="cmd"># Test konfigurasi
+freeradius -XC 2>&1 | tail -5
+
+# Start & enable
+systemctl start freeradius
+systemctl enable freeradius
+systemctl status freeradius</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="alert alert-success"><span class="alert-icon">✅</span><div>FreeRADIUS berjalan. Lanjut ke <strong>Step 6</strong>.</div></div>
+</section>
+
+<!-- ===== STEP 6: NGINX ===== -->
+<section id="step6">
+  <h1>Step 6 — Nginx Reverse Proxy</h1>
+
+  <h2>6.1 Buat Site Config</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cat > /etc/nginx/sites-available/salfanet-radius << 'NGINX'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name {{ip}} {{domain}} _;
+
+    client_max_body_size 100M;
+    proxy_connect_timeout 600;
+    proxy_send_timeout 600;
+    proxy_read_timeout 600;
+    send_timeout 600;
+
+    # Gzip
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+
+    # Security headers
+    add_header X-Frame-Options \"SAMEORIGIN\" always;
+    add_header X-Content-Type-Options \"nosniff\" always;
+    add_header X-XSS-Protection \"1; mode=block\" always;
+
+    # APK download
+    location /downloads/ {
+        alias {{appdir}}/public/downloads/;
+        autoindex off;
+    }
+
+    # Next.js static assets (cache 1 tahun)
+    location /_next/static/ {
+        alias {{appdir}}/.next/static/;
+        expires 365d;
+        add_header Cache-Control \"public, immutable\";
+    }
+
+    # Main proxy ke Next.js
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \\$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \\$host;
+        proxy_set_header X-Real-IP \\$remote_addr;
+        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \\$scheme;
+        proxy_cache_bypass \\$http_upgrade;
+    }
+}
+NGINX">cat > /etc/nginx/sites-available/salfanet-radius << 'NGINX'
+server {
+    listen 80;
+    listen [::]:80;
+    server_name YOUR_VPS_IP _;
+
+    client_max_body_size 100M;
+    proxy_connect_timeout 600;
+    proxy_send_timeout 600;
+    proxy_read_timeout 600;
+    send_timeout 600;
+
+    # Gzip
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # APK download
+    location /downloads/ {
+        alias /var/www/salfanet-radius/public/downloads/;
+        autoindex off;
+    }
+
+    # Next.js static assets (cache 1 tahun)
+    location /_next/static/ {
+        alias /var/www/salfanet-radius/.next/static/;
+        expires 365d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Main proxy ke Next.js
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+NGINX</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>6.2 Enable Site & Restart</h2>
+  <div class="code-wrap"><pre><code class="cmd"># Hapus default, enable salfanet
+rm -f /etc/nginx/sites-enabled/default
+ln -sf /etc/nginx/sites-available/salfanet-radius /etc/nginx/sites-enabled/
+
+# Test & restart
+nginx -t && systemctl restart nginx && systemctl enable nginx</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="alert alert-success"><span class="alert-icon">✅</span><div>Nginx aktif. Lanjut ke <strong>Step 7</strong>.</div></div>
+</section>
+
+<!-- ===== STEP 7: PM2 & BUILD ===== -->
+<section id="step7">
+  <h1>Step 7 — PM2, Swap & Build</h1>
+
+  <h2>7.1 Install PM2</h2>
+  <div class="code-wrap"><pre><code class="cmd">npm install -g pm2
+pm2 --version</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>7.2 Buat Swap (WAJIB untuk VPS 2GB RAM)</h2>
+  <div class="alert alert-danger"><span class="alert-icon">🚨</span><div><strong>KRITIS:</strong> Tanpa swap, build Next.js AKAN gagal (OOM killed) pada VPS dengan RAM ≤ 2GB.</div></div>
+  <div class="code-wrap"><pre><code class="cmd"># Cek apakah sudah ada swap
+swapon --show
+
+# Jika belum ada, buat 2GB swap
+dd if=/dev/zero of=/swapfile bs=1M count=2048 status=progress
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+
+# Permanent (survive reboot)
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+# Verifikasi
+free -h</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>7.3 Build Next.js</h2>
+  <div class="alert alert-warn"><span class="alert-icon">⚠️</span><div>Gunakan <code>npm run build:vps</code> — BUKAN <code>npm run build</code>. Command biasa menggunakan 4GB heap yang melebihi RAM.</div></div>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cd {{appdir}}
+
+# Stop PM2 dulu untuk bebaskan RAM
+pm2 stop all 2>/dev/null || true
+
+# Bersihkan cache build lama
+rm -rf .next .turbo node_modules/.cache
+
+# Build dengan VPS memory limit (1.5GB heap)
+NEXT_TELEMETRY_DISABLED=1 npm run build:vps">cd /var/www/salfanet-radius
+
+# Stop PM2 dulu untuk bebaskan RAM
+pm2 stop all 2>/dev/null || true
+
+# Bersihkan cache build lama
+rm -rf .next .turbo node_modules/.cache
+
+# Build dengan VPS memory limit (1.5GB heap)
+NEXT_TELEMETRY_DISABLED=1 npm run build:vps</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  <div class="alert alert-info"><span class="alert-icon">⏱</span><div>Build memakan waktu <strong>5-10 menit</strong>. Jangan interrupt prosesnya.</div></div>
+
+  <h2>7.4 Buat PM2 Ecosystem Config</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cat > {{appdir}}/ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [
+    {
+      name: 'salfanet-radius',
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start',
+      cwd: '{{appdir}}',
+      instances: 1,
+      exec_mode: 'cluster',
+      max_memory_restart: '400M',
+      node_args: ['--max-old-space-size=350', '--optimize-for-size'],
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3000,
+        TZ: 'Asia/Jakarta'
+      },
+      error_file: './logs/error.log',
+      out_file: './logs/out.log',
+      merge_logs: true,
+      autorestart: true,
+      cron_restart: '0 */6 * * *'
+    },
+    {
+      name: 'salfanet-cron',
+      script: './cron-service.js',
+      cwd: '{{appdir}}',
+      instances: 1,
+      exec_mode: 'fork',
+      max_memory_restart: '150M',
+      node_args: ['--max-old-space-size=120', '--optimize-for-size'],
+      env: {
+        NODE_ENV: 'production',
+        API_URL: 'http://localhost:3000',
+        TZ: 'Asia/Jakarta'
+      },
+      error_file: './logs/cron-error.log',
+      out_file: './logs/cron-out.log',
+      merge_logs: true,
+      autorestart: true
+    }
+  ]
+};
+EOF
+
+mkdir -p {{appdir}}/logs">cat > /var/www/salfanet-radius/ecosystem.config.js << 'EOF'
+module.exports = {
+  apps: [
+    {
+      name: 'salfanet-radius',
+      script: 'node_modules/next/dist/bin/next',
+      args: 'start',
+      cwd: '/var/www/salfanet-radius',
+      instances: 1,
+      exec_mode: 'cluster',
+      max_memory_restart: '400M',
+      node_args: ['--max-old-space-size=350', '--optimize-for-size'],
+      env: {
+        NODE_ENV: 'production',
+        PORT: 3000,
+        TZ: 'Asia/Jakarta'
+      },
+      error_file: './logs/error.log',
+      out_file: './logs/out.log',
+      merge_logs: true,
+      autorestart: true,
+      cron_restart: '0 */6 * * *'
+    },
+    {
+      name: 'salfanet-cron',
+      script: './cron-service.js',
+      cwd: '/var/www/salfanet-radius',
+      instances: 1,
+      exec_mode: 'fork',
+      max_memory_restart: '150M',
+      node_args: ['--max-old-space-size=120', '--optimize-for-size'],
+      env: {
+        NODE_ENV: 'production',
+        API_URL: 'http://localhost:3000',
+        TZ: 'Asia/Jakarta'
+      },
+      error_file: './logs/cron-error.log',
+      out_file: './logs/cron-out.log',
+      merge_logs: true,
+      autorestart: true
+    }
+  ]
+};
+EOF
+
+mkdir -p /var/www/salfanet-radius/logs</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>7.5 Start Aplikasi dengan PM2</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cd {{appdir}}
+
+# Start sebagai app user
+sudo su - {{user}} -c 'cd {{appdir}} && pm2 start ecosystem.config.js'
+sudo su - {{user}} -c 'pm2 save'
+
+# Setup auto-start saat boot
+sudo /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u {{user}} --hp /home/{{user}}
+
+# Verifikasi
+sudo su - {{user}} -c 'pm2 status'">cd /var/www/salfanet-radius
+
+# Start sebagai app user
+sudo su - salfanet -c "cd /var/www/salfanet-radius && pm2 start ecosystem.config.js"
+sudo su - salfanet -c "pm2 save"
+
+# Setup auto-start saat boot
+sudo /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u salfanet --hp /home/salfanet
+
+# Verifikasi
+sudo su - salfanet -c "pm2 status"</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>7.6 Enable FreeRADIUS REST Module</h2>
+  <p>Sekarang app sudah running, enable REST module agar FreeRADIUS bisa memanggil API:</p>
+  <div class="code-wrap"><pre><code class="cmd">ln -sf $FR_DIR/mods-available/rest $FR_DIR/mods-enabled/rest
+systemctl restart freeradius</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h3>Verifikasi Semua Berjalan</h3>
+  <div class="code-wrap"><pre><code class="cmd"># Cek PM2
+pm2 status
+
+# Cek Next.js merespons
+curl -s -o /dev/null -w "%{http_code}" http://localhost:3000
+
+# Cek FreeRADIUS
+systemctl status freeradius
+
+# Cek Nginx
+systemctl status nginx
+
+# Cek app dari browser
+echo "Buka: http://$(hostname -I | awk '{print $1}')"</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="alert alert-success"><span class="alert-icon">🎉</span><div><strong>Instalasi selesai!</strong> Buka <code>http://VPS_IP</code> di browser. Login default: <code>admin</code> / <code>admin123</code></div></div>
+</section>
+
+<!-- ===== STEP 8: REDIS ===== -->
+<section id="step8">
+  <h1>Step 8 — Redis Cache (Opsional, Direkomendasikan)</h1>
+  <p>Redis meningkatkan performa signifikan: cache RADIUS auth, dashboard real-time, rate limiting terdistribusi, tracking online users, dan distributed lock untuk cron job.</p>
+
+  <div class="alert alert-info"><span class="alert-icon">💡</span><div>Redis <strong>opsional</strong> — semua fitur tetap berjalan tanpa Redis (fallback ke MySQL/in-memory). Namun sangat direkomendasikan untuk produksi dengan banyak pelanggan.</div></div>
+
+  <h2>8.1 Install Redis</h2>
+  <div class="code-wrap"><pre><code class="cmd">apt-get install -y redis-server</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>8.2 Konfigurasi Redis</h2>
+  <p>Edit konfigurasi Redis untuk produksi:</p>
+  <div class="code-wrap"><pre><code class="cmd"># Backup config asli
+cp /etc/redis/redis.conf /etc/redis/redis.conf.bak
+
+# Set bind hanya localhost (keamanan)
+sed -i 's/^bind .*/bind 127.0.0.1 -::1/' /etc/redis/redis.conf
+
+# Aktifkan maxmemory (sesuaikan dengan RAM VPS, contoh 256MB)
+sed -i 's/^# maxmemory .*/maxmemory 256mb/' /etc/redis/redis.conf
+sed -i 's/^# maxmemory-policy .*/maxmemory-policy allkeys-lru/' /etc/redis/redis.conf</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="alert alert-warning"><span class="alert-icon">⚠️</span><div>Sesuaikan <code>maxmemory</code> dengan RAM VPS Anda: <code>128mb</code> untuk 1GB RAM, <code>256mb</code> untuk 2GB+, <code>512mb</code> untuk 4GB+.</div></div>
+
+  <h2>8.3 Enable & Start Redis</h2>
+  <div class="code-wrap"><pre><code class="cmd">systemctl enable redis-server
+systemctl start redis-server
+systemctl status redis-server
+
+# Test koneksi
+redis-cli ping
+# Output harus: PONG</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>8.4 Tambahkan REDIS_URL ke .env</h2>
+  <p>Buka file <code>.env</code> dan tambahkan baris berikut:</p>
+  <div class="code-wrap"><pre><code class="cmd">echo '' >> /var/www/salfanet-radius/.env
+echo '# Redis - Cache & Performance' >> /var/www/salfanet-radius/.env
+echo 'REDIS_URL=redis://127.0.0.1:6379' >> /var/www/salfanet-radius/.env
+
+# Verifikasi
+grep REDIS_URL /var/www/salfanet-radius/.env</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>8.5 Restart Aplikasi</h2>
+  <div class="code-wrap"><pre><code class="cmd">pm2 restart salfanet-radius
+pm2 restart salfanet-cron
+pm2 status</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>8.6 Verifikasi Redis Berjalan</h2>
+  <div class="code-wrap"><pre><code class="cmd"># Cek Redis keys diisi oleh aplikasi (setelah beberapa request)
+redis-cli keys "*"
+
+# Monitor real-time
+redis-cli monitor
+# Tekan Ctrl+C untuk keluar</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <div class="card">
+    <div class="card-header"><span class="icon">📊</span><h3>Fitur yang Di-cache Redis</h3></div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+      <thead><tr style="background:#1a1f2e"><th style="padding:8px;text-align:left;border:1px solid #2a2f3e">Fitur</th><th style="padding:8px;text-align:left;border:1px solid #2a2f3e">TTL</th><th style="padding:8px;text-align:left;border:1px solid #2a2f3e">Manfaat</th></tr></thead>
+      <tbody>
+        <tr><td style="padding:8px;border:1px solid #2a2f3e">RADIUS Auth Cache</td><td style="padding:8px;border:1px solid #2a2f3e">60 detik</td><td style="padding:8px;border:1px solid #2a2f3e">PPPoE login jauh lebih cepat</td></tr>
+        <tr style="background:#1a1f2e"><td style="padding:8px;border:1px solid #2a2f3e">Dashboard Stats</td><td style="padding:8px;border:1px solid #2a2f3e">30 detik</td><td style="padding:8px;border:1px solid #2a2f3e">Kurangi query DB berat</td></tr>
+        <tr><td style="padding:8px;border:1px solid #2a2f3e">Online Users Tracking</td><td style="padding:8px;border:1px solid #2a2f3e">2 jam</td><td style="padding:8px;border:1px solid #2a2f3e">Hitungan online real-time tanpa query radacct</td></tr>
+        <tr style="background:#1a1f2e"><td style="padding:8px;border:1px solid #2a2f3e">Rate Limiting</td><td style="padding:8px;border:1px solid #2a2f3e">Per window</td><td style="padding:8px;border:1px solid #2a2f3e">Proteksi API terdistribusi</td></tr>
+        <tr><td style="padding:8px;border:1px solid #2a2f3e">Cron Distributed Lock</td><td style="padding:8px;border:1px solid #2a2f3e">Per job</td><td style="padding:8px;border:1px solid #2a2f3e">Cegah double-run jika multi-instance</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="alert alert-success"><span class="alert-icon">✅</span><div>Redis aktif dan terhubung. Lanjut ke <strong>Step 9 (Mobile APK)</strong> jika diperlukan, atau selesai!</div></div>
+</section>
+
+<!-- ===== STEP 9: MOBILE APK ===== -->
+<section id="step9">
+  <h1>Step 9 — Mobile APK Build (Opsional)</h1>
+  <p>Build APK customer Android langsung di VPS. Membutuhkan 3GB+ disk space dan 20-40 menit.</p>
+
+  <h2>9.1 Install Java 17</h2>
+  <div class="code-wrap"><pre><code class="cmd">apt-get install -y openjdk-17-jdk
+java -version</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>9.2 Install Android SDK</h2>
+  <div class="code-wrap"><pre><code class="cmd">mkdir -p /opt/android-sdk/cmdline-tools
+cd /opt/android-sdk/cmdline-tools
+wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
+unzip -q tools.zip && mv cmdline-tools latest && rm tools.zip
+
+# Environment variables
+cat > /etc/profile.d/android-sdk.sh << 'EOF'
+export ANDROID_HOME=/opt/android-sdk
+export ANDROID_SDK_ROOT=/opt/android-sdk
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+EOF
+source /etc/profile.d/android-sdk.sh
+
+# Accept licenses & install components
+yes | sdkmanager --licenses
+sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>9.3 Build APK</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cd {{appdir}}/mobile-app
+
+# Set API URL (gunakan domain jika ada, atau IP)
+cat > .env << EOF
+API_URL={{appurl}}
+API_TIMEOUT=30000
+APP_NAME=SALFANET RADIUS
+EOF
+
+# Install dependencies & build
+npm install
+cd android && chmod +x gradlew
+./gradlew assembleRelease --max-workers=2 -Dorg.gradle.jvmargs='-Xmx1536m'
+
+# Copy APK ke public downloads
+mkdir -p {{appdir}}/public/downloads
+cp app/build/outputs/apk/release/app-release.apk {{appdir}}/public/downloads/salfanet-radius.apk
+echo 'APK tersedia di: {{appurl}}/downloads/salfanet-radius.apk'">cd /var/www/salfanet-radius/mobile-app
+
+# Set API URL
+cat > .env << EOF
+API_URL=http://YOUR_VPS_IP:3000
+API_TIMEOUT=30000
+APP_NAME=SALFANET RADIUS
+EOF
+
+# Install dependencies & build
+npm install
+cd android && chmod +x gradlew
+./gradlew assembleRelease --max-workers=2 -Dorg.gradle.jvmargs="-Xmx1536m"
+
+# Copy APK ke public downloads
+mkdir -p /var/www/salfanet-radius/public/downloads
+cp app/build/outputs/apk/release/app-release.apk /var/www/salfanet-radius/public/downloads/salfanet-radius.apk
+echo "APK tersedia di: http://YOUR_VPS_IP/downloads/salfanet-radius.apk"</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+</section>
+
+<!-- ===== FIREWALL & PORTS ===== -->
+<section id="firewall">
+  <h1>🔥 Firewall & Ports</h1>
+  <div class="alert alert-info"><span class="alert-icon">💡</span><div>Jika menggunakan <strong>Proxmox LXC</strong>, UFW di-skip — konfigurasi firewall di host Proxmox.</div></div>
+
+  <h2>Port Map Lengkap</h2>
+  <table>
+    <tr><th>Port</th><th>Protocol</th><th>Service</th><th>Akses</th></tr>
+    <tr><td>22</td><td>TCP</td><td>SSH</td><td><span class="badge badge-red">External</span></td></tr>
+    <tr><td>80</td><td>TCP</td><td>HTTP (Nginx)</td><td><span class="badge badge-red">External</span></td></tr>
+    <tr><td>443</td><td>TCP</td><td>HTTPS (Nginx)</td><td><span class="badge badge-red">External</span></td></tr>
+    <tr><td>1812</td><td>UDP</td><td>RADIUS Auth</td><td><span class="badge badge-yellow">MikroTik only</span></td></tr>
+    <tr><td>1813</td><td>UDP</td><td>RADIUS Accounting</td><td><span class="badge badge-yellow">MikroTik only</span></td></tr>
+    <tr><td>3799</td><td>UDP</td><td>RADIUS CoA</td><td><span class="badge badge-yellow">MikroTik only</span></td></tr>
+    <tr><td>500</td><td>UDP</td><td>IPSec IKE</td><td><span class="badge badge-yellow">VPN</span></td></tr>
+    <tr><td>4500</td><td>UDP</td><td>IPSec NAT-T</td><td><span class="badge badge-yellow">VPN</span></td></tr>
+    <tr><td>1701</td><td>UDP</td><td>L2TP Tunnel</td><td><span class="badge badge-yellow">VPN</span></td></tr>
+    <tr><td>3000</td><td>TCP</td><td>Next.js (internal)</td><td><span class="badge badge-green">Localhost</span></td></tr>
+    <tr><td>3306</td><td>TCP</td><td>MySQL (internal)</td><td><span class="badge badge-green">Localhost</span></td></tr>
+    <tr><td>6379</td><td>TCP</td><td>Redis (internal)</td><td><span class="badge badge-green">Localhost</span></td></tr>
+  </table>
+
+  <h2>Setup UFW (VPS/VM)</h2>
+  <div class="code-wrap"><pre><code class="cmd"># Enable UFW dengan rules
+ufw allow 22/tcp        # SSH
+ufw allow 80/tcp        # HTTP
+ufw allow 443/tcp       # HTTPS
+ufw allow 1812/udp      # RADIUS Auth
+ufw allow 1813/udp      # RADIUS Accounting
+ufw allow 3799/udp      # RADIUS CoA
+ufw allow 500/udp       # IPSec IKE
+ufw allow 4500/udp      # IPSec NAT-T
+ufw allow 1701/udp      # L2TP
+
+# Enable (ketik 'y' untuk konfirmasi)
+ufw --force enable
+ufw status verbose</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+</section>
+
+<!-- ===== POST-INSTALL ===== -->
+<section id="postinstall">
+  <h1>🔧 Post-Install</h1>
+
+  <h2>Login Default</h2>
+  <table>
+    <tr><th>Field</th><th>Value</th></tr>
+    <tr><td>URL</td><td><code>http://VPS_IP/admin/login</code></td></tr>
+    <tr><td>Username</td><td><code>admin</code></td></tr>
+    <tr><td>Password</td><td><code>admin123</code></td></tr>
+  </table>
+  <div class="alert alert-danger"><span class="alert-icon">🔒</span><div><strong>SEGERA ganti password admin</strong> setelah login pertama kali di menu Settings → Profile.</div></div>
+
+  <h2>Setup MikroTik RADIUS</h2>
+  <p>Di MikroTik, tambahkan RADIUS server:</p>
+  <div class="code-wrap"><pre><code class="cmd">/radius add service=ppp address=VPS_IP secret=testing123 authentication-port=1812 accounting-port=1813 timeout=3000
+/radius incoming set accept=yes port=3799
+
+# Enable RADIUS pada PPP
+/ppp profile set default use-radius=yes
+/ppp aaa set use-radius=yes accounting=yes interim-update=5m</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>Setup SSL — Certbot (Opsional, Direkomendasikan)</h2>
+  <div class="alert alert-info"><span class="alert-icon">🔒</span><div>Pastikan DNS <strong>{{domain}}</strong> sudah pointing ke IP <strong>{{ip}}</strong> sebelum jalankan certbot. Cek dengan: <code>dig +short {{domain}}</code></div></div>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="# Pastikan DNS sudah pointing ke {{ip}}
+dig +short {{domain}}
+
+# Request SSL certificate
+certbot --nginx -d {{domain}} -m {{sslemail}} --agree-tos --non-interactive --redirect
+
+# Verifikasi
+nginx -t && systemctl reload nginx
+
+# Test auto-renew
+certbot renew --dry-run"># Pastikan DNS sudah pointing ke IP VPS
+dig +short DOMAIN_OPSIONAL
+
+# Request SSL certificate
+certbot --nginx -d DOMAIN_OPSIONAL -m admin@yourdomain.com --agree-tos --non-interactive --redirect
+
+# Verifikasi
+nginx -t && systemctl reload nginx
+
+# Test auto-renew
+certbot renew --dry-run</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>Update .env Setelah SSL Aktif</h2>
+  <p>Setelah SSL terpasang, update <code>NEXTAUTH_URL</code> dan <code>NEXT_PUBLIC_APP_URL</code> ke HTTPS:</p>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="# Update .env dengan HTTPS URL
+sed -i 's|NEXTAUTH_URL=.*|NEXTAUTH_URL=&quot;https://{{domain}}&quot;|' {{appdir}}/.env
+sed -i 's|NEXT_PUBLIC_APP_URL=.*|NEXT_PUBLIC_APP_URL=&quot;https://{{domain}}&quot;|' {{appdir}}/.env
+
+# Restart app
+pm2 restart salfanet-radius salfanet-cron"># Update .env dengan HTTPS URL
+sed -i 's|NEXTAUTH_URL=.*|NEXTAUTH_URL=&quot;https://DOMAIN_OPSIONAL&quot;|' /var/www/salfanet-radius/.env
+sed -i 's|NEXT_PUBLIC_APP_URL=.*|NEXT_PUBLIC_APP_URL=&quot;https://DOMAIN_OPSIONAL&quot;|' /var/www/salfanet-radius/.env
+
+# Restart app
+pm2 restart salfanet-radius salfanet-cron</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>Deploy Update Script</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="cat > {{appdir}}/deploy.sh << 'DEPLOY'
+#!/bin/bash
+cd {{appdir}}
+echo \"[DEPLOY] Pulling latest code...\"
+git pull origin main 2>/dev/null || true
+echo \"[DEPLOY] Installing dependencies...\"
+npm install --production=false
+echo \"[DEPLOY] Generating Prisma client...\"
+npx prisma generate
+npx prisma db push --accept-data-loss --skip-generate
+echo \"[DEPLOY] Building...\"
+pm2 stop all
+rm -rf .next node_modules/.cache
+NEXT_TELEMETRY_DISABLED=1 npm run build:vps
+echo \"[DEPLOY] Fixing permissions...\"
+chown -R {{user}}:{{user}} {{appdir}}
+echo \"[DEPLOY] Restarting PM2...\"
+sudo su - {{user}} -c 'pm2 restart ecosystem.config.js'
+echo \"[DEPLOY] Done!\"
+DEPLOY
+chmod +x {{appdir}}/deploy.sh">cat > /var/www/salfanet-radius/deploy.sh << 'DEPLOY'
+#!/bin/bash
+cd /var/www/salfanet-radius
+echo "[DEPLOY] Pulling latest code..."
+git pull origin main 2>/dev/null || true
+echo "[DEPLOY] Installing dependencies..."
+npm install --production=false
+echo "[DEPLOY] Generating Prisma client..."
+npx prisma generate
+npx prisma db push --accept-data-loss --skip-generate
+echo "[DEPLOY] Building..."
+pm2 stop all
+rm -rf .next node_modules/.cache
+NEXT_TELEMETRY_DISABLED=1 npm run build:vps
+echo "[DEPLOY] Fixing permissions..."
+chown -R salfanet:salfanet /var/www/salfanet-radius
+echo "[DEPLOY] Restarting PM2..."
+sudo su - salfanet -c "pm2 restart ecosystem.config.js"
+echo "[DEPLOY] Done!"
+DEPLOY
+chmod +x /var/www/salfanet-radius/deploy.sh</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>Useful Commands</h2>
+  <table>
+    <tr><th>Perintah</th><th>Fungsi</th></tr>
+    <tr><td><code>pm2 status</code></td><td>Lihat status semua proses</td></tr>
+    <tr><td><code>pm2 logs</code></td><td>Lihat log realtime</td></tr>
+    <tr><td><code>pm2 restart all</code></td><td>Restart semua proses</td></tr>
+    <tr><td><code>pm2 monit</code></td><td>Monitor CPU/RAM realtime</td></tr>
+    <tr><td><code>systemctl status freeradius</code></td><td>Status FreeRADIUS</td></tr>
+    <tr><td><code>systemctl status nginx</code></td><td>Status Nginx</td></tr>
+    <tr><td><code>systemctl status mysql</code></td><td>Status MySQL</td></tr>
+    <tr><td><code>radtest user pass localhost 0 testing123</code></td><td>Test RADIUS auth</td></tr>
+    <tr><td><code>free -h</code></td><td>Cek penggunaan RAM & swap</td></tr>
+    <tr><td><code>df -h</code></td><td>Cek disk space</td></tr>
+  </table>
+</section>
+
+<!-- ===== TROUBLESHOOT ===== -->
+<section id="troubleshoot">
+  <h1>🔧 Troubleshooting</h1>
+
+  <h2>Build Gagal — OOM Killed</h2>
+  <div class="card">
+    <div class="card-header"><span class="icon">💥</span><h3>Error: "Killed" atau "JavaScript heap out of memory"</h3></div>
+    <p><strong>Penyebab:</strong> RAM tidak cukup untuk build Next.js (butuh minimal 1.5GB free)</p>
+    <p><strong>Solusi:</strong></p>
+    <ol>
+      <li>Pastikan swap sudah aktif: <code>swapon --show</code></li>
+      <li>Stop semua service dulu: <code>pm2 stop all</code></li>
+      <li>Free memory: <code>sync && echo 3 > /proc/sys/vm/drop_caches</code></li>
+      <li>Gunakan <code>npm run build:vps</code> (1.5GB) atau <code>npm run build:low-mem</code> (1GB)</li>
+      <li>Jika masih gagal, tambah swap: <code>dd if=/dev/zero of=/swapfile2 bs=1M count=2048 && mkswap /swapfile2 && swapon /swapfile2</code></li>
+    </ol>
+    <div class="code-wrap"><pre><code class="cmd"># Panduan lengkap fix OOM:
+pm2 stop all
+sync && echo 3 > /proc/sys/vm/drop_caches
+swapon --show  # Pastikan swap aktif
+free -h        # Pastikan ada minimal 1GB free (RAM + swap)
+cd /var/www/salfanet-radius
+rm -rf .next node_modules/.cache
+NEXT_TELEMETRY_DISABLED=1 npm run build:vps</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <h2>FreeRADIUS Gagal Start</h2>
+  <div class="card">
+    <div class="card-header"><span class="icon">📡</span><h3>Error: "Failed to start FreeRADIUS"</h3></div>
+    <p><strong>Debug:</strong></p>
+    <div class="code-wrap"><pre><code class="cmd"># Jalankan debug mode
+freeradius -X
+
+# Cek log
+journalctl -u freeradius -n 50 --no-pager
+
+# Common fixes:
+# 1. SQL module gagal connect → cek DB credentials di mods-available/sql
+# 2. Port sudah terpakai → fuser -k 1812/udp
+# 3. Permission error → chown -R freerad:freerad /etc/freeradius/3.0</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <h2>Nginx 502 Bad Gateway</h2>
+  <div class="card">
+    <div class="card-header"><span class="icon">🌐</span><h3>Error: "502 Bad Gateway" di browser</h3></div>
+    <p><strong>Penyebab:</strong> Next.js (PM2) belum running atau crash.</p>
+    <div class="code-wrap"><pre><code class="cmd"># Cek PM2
+pm2 status
+pm2 logs salfanet-radius --lines 50
+
+# Cek port 3000
+ss -tlnp | grep 3000
+
+# Restart jika perlu
+pm2 restart salfanet-radius
+
+# Cek Nginx config
+nginx -t
+cat /var/log/nginx/error.log | tail -20</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <h2>Prisma Error</h2>
+  <div class="card">
+    <div class="card-header"><span class="icon">🗄️</span><h3>Error: "spawn schema-engine EACCES" atau Prisma client error</h3></div>
+    <div class="code-wrap"><pre><code class="cmd"># Fix executable permissions
+chmod +x node_modules/@prisma/engines/*
+chmod +x node_modules/.prisma/client/*
+
+# Regenerate Prisma client
+npx prisma generate
+
+# Fix schema push
+npx prisma db push --accept-data-loss --skip-generate
+
+# Nuclear option: reinstall
+rm -rf node_modules/.prisma
+npm install</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <h2>MySQL Connection Refused</h2>
+  <div class="card">
+    <div class="card-header"><span class="icon">🗄️</span><h3>Error: "Can't connect to MySQL" atau "Access denied"</h3></div>
+    <div class="code-wrap"><pre><code class="cmd"># Cek MySQL running
+systemctl status mysql
+
+# Test koneksi
+mysql -u salfanet_user -p'salfanetradius123' salfanet_radius -e "SELECT 1;"
+
+# Jika access denied, reset user:
+mysql -u root -p'root123' << 'EOF'
+DROP USER IF EXISTS 'salfanet_user'@'localhost';
+CREATE USER 'salfanet_user'@'localhost' IDENTIFIED BY 'salfanetradius123';
+GRANT ALL PRIVILEGES ON salfanet_radius.* TO 'salfanet_user'@'localhost';
+FLUSH PRIVILEGES;
+EOF
+
+# Cek DATABASE_URL di .env
+cat /var/www/salfanet-radius/.env | grep DATABASE_URL</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <h2>Port 3000 Already in Use</h2>
+  <div class="card">
+    <div class="card-header"><span class="icon">🔌</span><h3>Error: "EADDRINUSE: address already in use :::3000"</h3></div>
+    <div class="code-wrap"><pre><code class="cmd"># Cari proses yang pakai port 3000
+lsof -i :3000 || ss -tlnp | grep 3000
+
+# Kill proses
+fuser -k 3000/tcp
+
+# Restart PM2
+pm2 restart salfanet-radius</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <h2>RADIUS Auth Gagal dari MikroTik</h2>
+  <div class="card">
+    <div class="card-header"><span class="icon">📡</span><h3>MikroTik: "RADIUS server not responding" atau "Access-Reject"</h3></div>
+    <div class="code-wrap"><pre><code class="cmd"># 1. Cek FreeRADIUS jalan
+systemctl status freeradius
+
+# 2. Test lokal  
+radtest testuser testpass localhost 0 testing123
+
+# 3. Cek firewall (port 1812/1813 terbuka?)
+ufw status | grep -E "1812|1813"
+
+# 4. Cek NAS terdaftar di database
+mysql -u salfanet_user -p'salfanetradius123' salfanet_radius \
+  -e "SELECT * FROM nas;"
+
+# 5. Cek log realtime saat MikroTik auth
+journalctl -u freeradius -f
+
+# 6. Pastikan IP MikroTik terdaftar di NAS (via admin panel)
+# Admin → Network → Routers → tambahkan NAS</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <h2>L2TP VPN Tidak Konek</h2>
+  <div class="card">
+    <div class="card-header"><span class="icon">🔐</span><h3>VPN L2TP tidak bisa establish tunnel</h3></div>
+    <div class="code-wrap"><pre><code class="cmd"># 1. Cek port IPSec
+ufw status | grep -E "500|4500|1701"
+
+# 2. Cek strongSwan
+systemctl status strongswan-starter
+ipsec statusall
+
+# 3. Cek xl2tpd
+systemctl status xl2tpd
+
+# 4. Cek IP forwarding
+sysctl net.ipv4.ip_forward   # Harus = 1
+
+# 5. Cek kernel modules
+lsmod | grep -E "l2tp|ppp"
+
+# 6. Log debug
+journalctl -u strongswan-starter -f
+journalctl -u xl2tpd -f</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+
+  <h2>Permission Denied</h2>
+  <div class="card">
+    <div class="card-header"><span class="icon">🔓</span><h3>Error: "EACCES: permission denied" pada berbagai operasi</h3></div>
+    <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="# Fix semua permission
+chown -R {{user}}:{{user}} {{appdir}}
+find {{appdir}} -type f -exec chmod 644 {} \;
+find {{appdir}} -type d -exec chmod 755 {} \;
+chmod +x {{appdir}}/node_modules/.bin/*
+chmod +x {{appdir}}/node_modules/@prisma/engines/* 2>/dev/null
+chmod 600 {{appdir}}/.env
+
+# Fix PM2
+mkdir -p /home/{{user}}/.pm2/logs /home/{{user}}/.pm2/pids
+chown -R {{user}}:{{user}} /home/{{user}}/.pm2
+
+# Fix Node.js binaries
+chmod 755 /usr/bin/node /usr/bin/npm /usr/bin/pm2 2>/dev/null"># Fix semua permission
+chown -R salfanet:salfanet /var/www/salfanet-radius
+find /var/www/salfanet-radius -type f -exec chmod 644 {} \;
+find /var/www/salfanet-radius -type d -exec chmod 755 {} \;
+chmod +x /var/www/salfanet-radius/node_modules/.bin/*
+chmod +x /var/www/salfanet-radius/node_modules/@prisma/engines/* 2>/dev/null
+chmod 600 /var/www/salfanet-radius/.env
+
+# Fix PM2
+mkdir -p /home/salfanet/.pm2/logs /home/salfanet/.pm2/pids
+chown -R salfanet:salfanet /home/salfanet/.pm2
+
+# Fix Node.js binaries
+chmod 755 /usr/bin/node /usr/bin/npm /usr/bin/pm2 2>/dev/null</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+  </div>
+</section>
+
+<!-- ===== UNINSTALL ===== -->
+<section id="uninstall">
+  <h1>🗑 Uninstall</h1>
+  <div class="alert alert-danger"><span class="alert-icon">⚠️</span><div><strong>PERINGATAN:</strong> Perintah di bawah akan menghapus SEMUA data dan konfigurasi Salfanet Radius. Backup dulu!</div></div>
+
+  <h2>Backup Database</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="mysqldump -u root -p'{{rootpass}}' {{dbname}} > /root/{{dbname}}_backup_$(date +%Y%m%d).sql
+echo 'Backup tersedia di: /root/{{dbname}}_backup_*.sql'">mysqldump -u root -p'root123' salfanet_radius > /root/salfanet_radius_backup_$(date +%Y%m%d).sql
+echo "Backup tersedia di: /root/salfanet_radius_backup_*.sql"</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+
+  <h2>Hapus Semua</h2>
+  <div class="code-wrap"><pre><code class="cmd dynamic" data-tpl="# Stop PM2
+sudo su - {{user}} -c 'pm2 delete all' 2>/dev/null
+sudo su - {{user}} -c 'pm2 kill' 2>/dev/null
+
+# Hapus app
+rm -rf {{appdir}}
+userdel -r {{user}} 2>/dev/null
+
+# Hapus FreeRADIUS
+systemctl stop freeradius
+apt-get purge -y freeradius freeradius-mysql freeradius-utils freeradius-rest
+rm -rf /etc/freeradius
+
+# Hapus MySQL (HATI-HATI: semua DB hilang!)
+systemctl stop mysql
+apt-get purge -y mysql-server mysql-client
+rm -rf /etc/mysql /var/lib/mysql /var/log/mysql
+
+# Hapus Nginx config
+rm -f /etc/nginx/sites-enabled/salfanet-radius
+rm -f /etc/nginx/sites-available/salfanet-radius
+systemctl restart nginx
+
+# Hapus PM2
+npm uninstall -g pm2
+
+# Hapus swap (opsional)
+swapoff /swapfile && rm -f /swapfile
+sed -i '/swapfile/d' /etc/fstab
+
+echo 'Uninstall selesai.'"># Stop PM2
+sudo su - salfanet -c "pm2 delete all" 2>/dev/null
+sudo su - salfanet -c "pm2 kill" 2>/dev/null
+
+# Hapus app
+rm -rf /var/www/salfanet-radius
+userdel -r salfanet 2>/dev/null
+
+# Hapus FreeRADIUS
+systemctl stop freeradius
+apt-get purge -y freeradius freeradius-mysql freeradius-utils freeradius-rest
+rm -rf /etc/freeradius
+
+# Hapus MySQL (HATI-HATI: semua DB hilang!)
+systemctl stop mysql
+apt-get purge -y mysql-server mysql-client
+rm -rf /etc/mysql /var/lib/mysql /var/log/mysql
+
+# Hapus Nginx config
+rm -f /etc/nginx/sites-enabled/salfanet-radius
+rm -f /etc/nginx/sites-available/salfanet-radius
+systemctl restart nginx
+
+# Hapus PM2
+npm uninstall -g pm2
+
+# Hapus swap (opsional)
+swapoff /swapfile && rm -f /swapfile
+sed -i '/swapfile/d' /etc/fstab
+
+echo "Uninstall selesai."</code></pre><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+</section>
+
+</div><!-- /content -->
+</main>
+</div><!-- /wrapper -->
+
+<script>
+// ==================== CONFIG VALUES ====================
+function getConfig() {
+  const ip     = document.getElementById('cfg-ip')?.value || 'YOUR_VPS_IP';
+  const domain = (document.getElementById('cfg-domain')?.value || '').trim();
+  const appUrl = domain ? 'https://' + domain : 'http://' + ip;
+  return {
+    ip,
+    domain: domain || 'DOMAIN_OPSIONAL',
+    sslemail: document.getElementById('cfg-sslemail')?.value || 'admin@yourdomain.com',
+    appurl: appUrl,
+    env: document.getElementById('cfg-env')?.value || 'vps',
+    appdir: document.getElementById('cfg-appdir')?.value || '/var/www/salfanet-radius',
+    user: document.getElementById('cfg-user')?.value || 'salfanet',
+    dbname: document.getElementById('cfg-dbname')?.value || 'salfanet_radius',
+    dbuser: document.getElementById('cfg-dbuser')?.value || 'salfanet_user',
+    dbpass: document.getElementById('cfg-dbpass')?.value || 'salfanetradius123',
+    rootpass: document.getElementById('cfg-rootpass')?.value || 'root123',
+    secret: document.getElementById('cfg-secret')?.value || 'GENERATE_ME',
+  };
+}
+
+function updateAllCommands() {
+  const cfg = getConfig();
+  document.querySelectorAll('code.dynamic').forEach(el => {
+    let tpl = el.getAttribute('data-tpl');
+    if (!tpl) return;
+    for (const [key, val] of Object.entries(cfg)) {
+      tpl = tpl.replaceAll('{{' + key + '}}', val);
+    }
+    el.textContent = tpl;
+  });
+}
+
+function generateSecret() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  const secret = btoa(String.fromCharCode(...arr)).replace(/[+/=]/g, c =>
+    c === '+' ? '-' : c === '/' ? '_' : ''
+  ).substring(0, 44);
+  document.getElementById('cfg-secret').value = secret;
+  updateAllCommands();
+}
+
+// ==================== NAVIGATION ====================
+const sections = document.querySelectorAll('section');
+const navLinks = document.querySelectorAll('.nav a');
+
+function showSection(id) {
+  sections.forEach(s => s.classList.remove('active'));
+  navLinks.forEach(a => a.classList.remove('active'));
+  const section = document.getElementById(id);
+  const link = document.querySelector(`.nav a[data-section="${id}"]`);
+  if (section) section.classList.add('active');
+  if (link) link.classList.add('active');
+
+  // Update progress
+  const steps = ['step1','step2','step3','step4','step5','step6','step7','step8','step9'];
+  const idx = steps.indexOf(id);
+  const pct = idx >= 0 ? Math.round(((idx + 1) / steps.length) * 100) : 0;
+  const fill = document.getElementById('progressFill');
+  if (fill) fill.style.width = pct + '%';
+
+  // Close mobile sidebar
+  document.querySelector('.sidebar')?.classList.remove('open');
+  window.scrollTo(0, 0);
+}
+
+navLinks.forEach(link => {
+  link.addEventListener('click', e => {
+    e.preventDefault();
+    showSection(link.getAttribute('data-section'));
+    history.pushState(null, '', '#' + link.getAttribute('data-section'));
+  });
+});
+
+// Handle URL hash
+if (location.hash) {
+  showSection(location.hash.substring(1));
+}
+
+// ==================== COPY ====================
+function copyCode(btn) {
+  const pre = btn.parentElement.querySelector('pre');
+  const code = pre.querySelector('code');
+  const text = code.textContent;
+
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = 'Copy';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// Init
+generateSecret();
+</script>
+</body>
+</html>

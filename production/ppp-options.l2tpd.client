@@ -1,0 +1,22 @@
+ipcp-accept-local
+ipcp-accept-remote
+refuse-eap
+require-mschap-v2
+noccp
+noauth
+nodefaultroute
+usepeerdns
+debug
+connect-delay 5000
+name vpn-server-radius-960k
+password MhbtJ23ukKkG
+
+# LCP keepalive: detect dead/zombie tunnels
+# Send echo request every 30 seconds.
+# If 4 consecutive echos go unanswered (= 2 minutes), pppd declares link dead,
+# exits cleanly → xl2tpd redial=yes triggers reconnect automatically.
+lcp-echo-interval 30
+lcp-echo-failure 4
+
+# Do NOT add 'persist' here — let xl2tpd manage reconnect via redial=yes.
+# Having both xl2tpd redial AND pppd persist causes double-reconnect race conditions.

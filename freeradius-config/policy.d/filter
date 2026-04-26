@@ -1,0 +1,104 @@
+#
+# Filter policies for FreeRADIUS
+# Modified to allow @ in username without domain validation
+#
+
+deny_realms {
+	if (&User-Name && (&User-Name =~ /@|\\/)) {
+		reject
+	}
+}
+
+#
+# Filter the username - Modified to allow @rw02, @rw03 format
+#
+filter_username {
+	if (&User-Name) {
+		# Reject all whitespace
+		if (&User-Name =~ / /) {
+			update request {
+				&Module-Failure-Message += 'Rejected: User-Name contains whitespace'
+			}
+			reject
+		}
+
+		# Reject Multiple @'s
+		if (&User-Name =~ /@[^@]*@/ ) {
+			update request {
+				&Module-Failure-Message += 'Rejected: Multiple @ in User-Name'
+			}
+			reject
+		}
+
+		# Reject double dots
+		if (&User-Name =~ /\.\./ ) {
+			update request {
+				&Module-Failure-Message += 'Rejected: User-Name contains multiple ..s'
+			}
+			reject
+		}
+
+		# REMOVED: Domain format validation
+		# This allows usernames like: lilissusilawati@rw02
+		# Previous rule required @domain.com format with dot
+	}
+}
+
+#
+# Filter the User-Password
+#
+filter_password {
+	if (&User-Password && \
+	   (&User-Password != "%{string:User-Password}")) {
+		update request {
+			&Tmp-String-0 := "%{string:User-Password}"
+			&User-Password := "%{string:Tmp-String-0}"
+			&Tmp-String-0 !* ""
+		}
+	 }
+}
+
+filter_inner_identity {
+	if (!&outer.request:User-Name || !&User-Name) {
+		update request {
+			Module-Failure-Message = "User-Name is required for tunneled authentication"
+		}
+		reject
+	}
+
+	if (&outer.request:User-Name != &User-Name) {
+		if (&outer.request:User-Name =~ /@([^@]+)$/) {
+			update request {
+				Outer-Realm-Name = "%{1}"
+			}
+
+			if (&outer.request:User-Name !~ /^(anon|@)/) {
+				update request {
+					Module-Failure-Message = "User-Name is not anonymized"
+				}
+				reject
+			}
+		}
+		elsif (&outer.request:User-Name !~ /^anon/) {
+			update request {
+				Module-Failure-Message = "User-Name is not anonymized"
+			}
+			reject
+		}
+
+		if (&User-Name =~ /@([^@]+)$/) {
+			update request {
+				Inner-Realm-Name = "%{1}"
+			}
+
+			if (&Outer-Realm-Name && \
+			    (&Inner-Realm-Name != &Outer-Realm-Name) && \
+			    (&Inner-Realm-Name !~ /\.%{Outer-Realm-Name}$/)) {
+				update request {
+					Module-Failure-Message = "Inner realm '%{Inner-Realm-Name}' and outer realm '%{Outer-Realm-Name}' are not from the same domain."
+				}
+				reject
+			}
+		}
+	}
+}

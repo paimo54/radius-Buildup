@@ -1,0 +1,71 @@
+#!/bin/bash
+# PPP ip-up script: auto-configure VPN routing when PPP interface comes up
+# Deploy to: /etc/ppp/ip-up.d/99-vpn-routes  (TANPA ekstensi .sh!)
+# chmod +x /etc/ppp/ip-up.d/99-vpn-routes
+#
+# Called by /etc/ppp/ip-up with positional args:
+#   $1 = interface name (e.g. ppp0)
+#   $2 = tty device
+#   $3 = speed
+#   $4 = local IP address
+#   $5 = remote IP address (peer/gateway, yaitu IP VPN MikroTik)
+#
+# VPN_SUBNET dibaca dari /etc/vpn/vpn.conf (diset saat vpn-connect start).
+# Jika tidak dikonfigurasi, fallback ke /24 dari IP peer otomatis.
+# Contoh: PEER=10.20.30.1 → VPN_SUBNET=10.20.30.0/24
+#         PEER=172.16.5.1  → VPN_SUBNET=172.16.5.0/24
+
+IFACE="$1"
+REMOTE_IP="$5"
+
+[ -z "${IFACE}" ] && exit 0
+logger -t vpn-route "PPP ${IFACE} up: local=$4 peer=${REMOTE_IP}"
+
+# Baca VPN_SUBNET dari konfigurasi (diset oleh: vpn-connect start SERVER USER PASS SUBNET)
+VPN_DIR="/etc/vpn"
+VPN_SUBNET=""
+[ -f "${VPN_DIR}/vpn.conf" ] && source "${VPN_DIR}/vpn.conf"
+
+# Fallback: turunkan /24 subnet dari peer IP jika VPN_SUBNET belum dikonfigurasi
+# Berlaku untuk subnet apa pun: 10.x.x.0/24, 172.16.x.0/24, 192.168.x.0/24, dll
+if [ -z "${VPN_SUBNET:-}" ] && [ -n "${REMOTE_IP}" ]; then
+    VPN_SUBNET="$(echo "${REMOTE_IP}" | cut -d. -f1-3).0/24"
+    logger -t vpn-route "VPN_SUBNET tidak dikonfigurasi, gunakan fallback: ${VPN_SUBNET}"
+fi
+
+[ -z "${VPN_SUBNET:-}" ] && { logger -t vpn-route "ERROR: VPN_SUBNET kosong, skip"; exit 0; }
+
+logger -t vpn-route "Menambahkan route ${VPN_SUBNET} via ${REMOTE_IP} dev ${IFACE}"
+
+# Add/replace route untuk VPN subnet (idempotent)
+ip route replace ${VPN_SUBNET} via ${REMOTE_IP} dev ${IFACE} metric 100 2>/dev/null || \
+  ip route add ${VPN_SUBNET} via ${REMOTE_IP} dev ${IFACE} metric 100 2>/dev/null || true
+
+# Buka iptables untuk RADIUS + CoA dari subnet VPN
+iptables -C INPUT -s ${VPN_SUBNET} -p udp --dport 1812 -j ACCEPT 2>/dev/null || \
+  iptables -I INPUT -s ${VPN_SUBNET} -p udp --dport 1812 -j ACCEPT 2>/dev/null || true
+iptables -C INPUT -s ${VPN_SUBNET} -p udp --dport 1813 -j ACCEPT 2>/dev/null || \
+  iptables -I INPUT -s ${VPN_SUBNET} -p udp --dport 1813 -j ACCEPT 2>/dev/null || true
+iptables -C INPUT -s ${VPN_SUBNET} -p udp --dport 3799 -j ACCEPT 2>/dev/null || \
+  iptables -I INPUT -s ${VPN_SUBNET} -p udp --dport 3799 -j ACCEPT 2>/dev/null || true
+
+# ─── ISOLATION POOL ROUTING ──────────────────────────────────────────────────
+# Route traffic destined for isolated PPPoE clients (192.168.200.0/24) back
+# through the VPN tunnel so nginx can reply to DNAT'd requests with real source IPs.
+# Dibaca dari vpn.conf; fallback ke nilai default jika tidak dikonfigurasi.
+ISOLATION_POOL="${ISOLATION_POOL:-192.168.200.0/24}"
+
+if [ -n "${ISOLATION_POOL:-}" ]; then
+    logger -t vpn-route "Menambahkan route isolation pool ${ISOLATION_POOL} via ${REMOTE_IP} dev ${IFACE}"
+    ip route replace ${ISOLATION_POOL} via ${REMOTE_IP} dev ${IFACE} metric 100 2>/dev/null || \
+      ip route add ${ISOLATION_POOL} via ${REMOTE_IP} dev ${IFACE} metric 100 2>/dev/null || true
+
+    # Izinkan HTTP port 80 dari isolation pool agar isolated client bisa dijawab
+    iptables -C INPUT -s ${ISOLATION_POOL} -p tcp --dport 80 -j ACCEPT 2>/dev/null || \
+      iptables -I INPUT -s ${ISOLATION_POOL} -p tcp --dport 80 -j ACCEPT 2>/dev/null || true
+
+    logger -t vpn-route "Isolation pool route done: ${ISOLATION_POOL} via ${REMOTE_IP}"
+fi
+# ─────────────────────────────────────────────────────────────────────────────
+
+logger -t vpn-route "Done: ${VPN_SUBNET} via ${REMOTE_IP} on ${IFACE}"

@@ -1,0 +1,1 @@
+export { default } from '@/app/admin/push-notifications/page';
