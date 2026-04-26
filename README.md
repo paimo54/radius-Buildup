@@ -92,7 +92,7 @@ salfanet-radius/
 ```bash
 ssh root@YOUR_VPS_IP
 
-git clone https://github.com/s4lfanet/salfanet-radius.git /root/salfanet-radius
+git clone https://github.com/paimo54/radius-Buildup.git /root/salfanet-radius
 cd /root/salfanet-radius
 bash vps-install/vps-installer.sh
 ```
