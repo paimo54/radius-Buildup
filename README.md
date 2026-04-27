@@ -92,9 +92,12 @@ salfanet-radius/
 ```bash
 ssh root@YOUR_VPS_IP
 
-git clone https://github.com/s4lfanet/salfanet-radius.git /root/salfanet-radius
+git clone https://github.com/paimo54/radius-Buildup.git /root/salfanet-radius
 cd /root/salfanet-radius
 bash vps-install/vps-installer.sh
+cd backend
+$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
+go run ./cmd/server
 ```
 
 Installer akan berjalan **interaktif** — mendeteksi environment otomatis, memandu konfigurasi, lalu menjalankan semua step.
