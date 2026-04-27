@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # 🛜 SALFANET RADIUS
 
@@ -25,14 +25,14 @@ supporting **PPPoE**, **Hotspot**, **VPN**, and **FTTH/OLT** — built for Indon
 - [Tech Stack](#-tech-stack)
 - [Architecture](#-architecture)
 - [Project Structure](#-project-structure)
-- [Installation](#%EF%B8%8F-installation)
+- [Installation](#️-installation)
 - [Environment Variables](#-environment-variables)
 - [FreeRADIUS](#-freeradius)
 - [Go Backend (API v2)](#-go-backend-api-v2)
 - [Cron Jobs](#-cron-jobs)
 - [Android APK Builder](#-android-apk-builder)
 - [Security](#-security)
-- [Common Commands](#%EF%B8%8F-common-commands)
+- [Common Commands](#️-common-commands)
 - [Troubleshooting](#-troubleshooting)
 - [Documentation](#-documentation)
 - [Changelog](#-changelog)
@@ -638,4 +638,3 @@ Built with ❤️ for Indonesian ISPs
 **[⬆ Back to Top](#-salfanet-radius)**
 
 </div>
-]]>
