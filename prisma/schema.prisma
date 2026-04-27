@@ -1027,6 +1027,9 @@ model networkOLT {
   snmpCommunity        String?
   sshEnabled           Boolean            @default(true)
   telnetEnabled        Boolean            @default(false)
+  snmpPort             Int                @default(161)
+  sshPort              Int                @default(22)
+  telnetPort           Int                @default(23)
   latitude             Float
   longitude            Float
   status               String             @default("active")

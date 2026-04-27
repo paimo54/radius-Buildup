@@ -1,6 +1,7 @@
 package olt
 
 import (
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -23,6 +24,7 @@ func RegisterRoutes(r *gin.RouterGroup) {
 		olt.PUT("/devices/:id", UpdateOlt)
 		olt.DELETE("/devices/:id", DeleteOlt)
 		olt.GET("/devices/:id/scan", ScanOlt)
+		olt.GET("/devices/:id/onus", ListOnus) // Get cached ONU data from DB
 		olt.POST("/devices/:id/reboot-onu", RebootOnuHandler)
 
 		// OID Mappings
@@ -87,7 +89,7 @@ type CreateOltRequest struct {
 	TelnetPort   *int    `json:"telnetPort"`
 	TelnetUser   string  `json:"telnetUser"`
 	TelnetPass   string  `json:"telnetPass"`
-	TelnetEnable string  `json:"telnetEnable"`
+	TelnetEnable bool    `json:"telnetEnable"`
 	Vendor       string  `json:"vendor" binding:"required"`
 	Description  *string `json:"description"`
 }
@@ -120,7 +122,7 @@ func CreateOlt(c *gin.Context) {
 		TelnetEnable: req.TelnetEnable,
 		Vendor:       req.Vendor,
 		Description:  req.Description,
-		IsActive:     true,
+		Status:       "active",
 	}
 
 	if err := database.DB.Create(&olt).Error; err != nil {
@@ -169,11 +171,80 @@ func ScanOlt(c *gin.Context) {
 		return
 	}
 
+	// Save results to database
+	SaveScanResults(id, onus)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Scan OLT berhasil",
 		"total":   len(onus),
 		"data":    onus,
 	})
+}
+
+// ListOnus returns cached ONU data from the database (last scan results)
+func ListOnus(c *gin.Context) {
+	id := c.Param("id")
+	
+	var onus []models.OltOnu
+	database.DB.Where("olt_id = ?", id).Order("onu_index ASC").Find(&onus)
+	
+	c.JSON(http.StatusOK, gin.H{
+		"total": len(onus),
+		"data":  onus,
+	})
+}
+
+// SaveScanResults saves SNMP scan results to the database, replacing old data
+func SaveScanResults(oltID string, onus []OnuData) {
+	if len(onus) == 0 {
+		return
+	}
+
+	// Delete old data for this OLT
+	database.DB.Where("olt_id = ?", oltID).Delete(&models.OltOnu{})
+
+	// Batch insert new data (in chunks of 100 for performance)
+	batch := make([]models.OltOnu, 0, len(onus))
+	for _, onu := range onus {
+		batch = append(batch, models.OltOnu{
+			OltID:    oltID,
+			OnuIndex: onu.Index,
+			Name:     onu.Name,
+			Serial:   onu.Serial,
+			Model:    onu.Model,
+			Status:   onu.Status,
+			Tx:       onu.Tx,
+			Rx:       onu.Rx,
+			Distance: onu.Distance,
+		})
+	}
+	
+	database.DB.CreateInBatches(&batch, 100)
+	log.Printf("[OLT] Saved %d ONUs to database for OLT %s", len(onus), oltID)
+}
+
+// ScanAllOLTs scans all active OLTs and saves results (used by cron)
+func ScanAllOLTs() {
+	var olts []models.Olt
+	database.DB.Where("status = ?", "active").Find(&olts)
+
+	if len(olts) == 0 {
+		log.Printf("[OLT CRON] No active OLTs to scan.")
+		return
+	}
+
+	log.Printf("[OLT CRON] Starting auto-scan for %d OLTs...", len(olts))
+	for _, o := range olts {
+		log.Printf("[OLT CRON] Scanning OLT: %s (%s)", o.Name, o.Host)
+		onus, err := ScanONU(o.ID)
+		if err != nil {
+			log.Printf("[OLT CRON] Failed to scan %s: %v", o.Name, err)
+			continue
+		}
+		SaveScanResults(o.ID, onus)
+		log.Printf("[OLT CRON] OLT %s: %d ONUs saved.", o.Name, len(onus))
+	}
+	log.Printf("[OLT CRON] Auto-scan complete.")
 }
 
 func RebootOnuHandler(c *gin.Context) {
@@ -229,11 +300,14 @@ func ListMappings(c *gin.Context) {
 }
 
 type CreateMappingRequest struct {
-	Vendor    string `json:"vendor" binding:"required"`
-	OidName   string `json:"oid_name" binding:"required"`
-	OidTx     string `json:"oid_tx" binding:"required"`
-	OidRx     string `json:"oid_rx" binding:"required"`
-	OidStatus string `json:"oid_status" binding:"required"`
+	Vendor      string `json:"vendor" binding:"required"`
+	OidName     string `json:"oid_name" binding:"required"`
+	OidTx       string `json:"oid_tx" binding:"required"`
+	OidRx       string `json:"oid_rx" binding:"required"`
+	OidStatus   string `json:"oid_status" binding:"required"`
+	OidSerial   string `json:"oid_serial"`
+	OidModel    string `json:"oid_model"`
+	OidDistance  string `json:"oid_distance"`
 }
 
 func CreateMapping(c *gin.Context) {
@@ -244,11 +318,14 @@ func CreateMapping(c *gin.Context) {
 	}
 
 	mapping := models.OidMapping{
-		Vendor:    req.Vendor,
-		OidName:   req.OidName,
-		OidTx:     req.OidTx,
-		OidRx:     req.OidRx,
-		OidStatus: req.OidStatus,
+		Vendor:      req.Vendor,
+		OidName:     req.OidName,
+		OidTx:       req.OidTx,
+		OidRx:       req.OidRx,
+		OidStatus:   req.OidStatus,
+		OidSerial:   req.OidSerial,
+		OidModel:    req.OidModel,
+		OidDistance:  req.OidDistance,
 	}
 
 	if err := database.DB.Create(&mapping).Error; err != nil {

@@ -54,7 +54,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, ipAddress, vendor, model, username, password, snmpCommunity, sshEnabled, telnetEnabled, latitude, longitude, status, routerIds, ponPorts, followRoad } = body;
+    const { name, ipAddress, vendor, model, username, password, snmpCommunity, sshEnabled, telnetEnabled, snmpPort, sshPort, telnetPort, latitude, longitude, status, routerIds, ponPorts, followRoad } = body;
 
     if (!name || !ipAddress || latitude === undefined || longitude === undefined) {
       return NextResponse.json(
@@ -78,6 +78,9 @@ export async function POST(request: NextRequest) {
         snmpCommunity: snmpCommunity || null,
         sshEnabled: sshEnabled !== undefined ? sshEnabled : true,
         telnetEnabled: telnetEnabled !== undefined ? telnetEnabled : false,
+        snmpPort: parseInt(snmpPort) || 161,
+        sshPort: parseInt(sshPort) || 22,
+        telnetPort: parseInt(telnetPort) || 23,
         latitude: parseFloat(latitude),
         longitude: parseFloat(longitude),
         status: status || 'active',
@@ -114,7 +117,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, ipAddress, vendor, model, username, password, snmpCommunity, sshEnabled, telnetEnabled, latitude, longitude, status, routerIds, followRoad } = body;
+    const { id, name, ipAddress, vendor, model, username, password, snmpCommunity, sshEnabled, telnetEnabled, snmpPort, sshPort, telnetPort, latitude, longitude, status, routerIds, followRoad } = body;
 
     if (!id) {
       return NextResponse.json(
@@ -136,6 +139,9 @@ export async function PUT(request: NextRequest) {
         ...(snmpCommunity !== undefined && { snmpCommunity }),
         ...(sshEnabled !== undefined && { sshEnabled }),
         ...(telnetEnabled !== undefined && { telnetEnabled }),
+        ...(snmpPort !== undefined && { snmpPort: parseInt(snmpPort) || 161 }),
+        ...(sshPort !== undefined && { sshPort: parseInt(sshPort) || 22 }),
+        ...(telnetPort !== undefined && { telnetPort: parseInt(telnetPort) || 23 }),
         ...(latitude !== undefined && { latitude: parseFloat(latitude) }),
         ...(longitude !== undefined && { longitude: parseFloat(longitude) }),
         ...(status && { status }),

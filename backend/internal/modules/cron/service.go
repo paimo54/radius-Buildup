@@ -6,6 +6,7 @@ import (
 
 	"radius-buildup/internal/database"
 	"radius-buildup/internal/models"
+	"radius-buildup/internal/modules/olt"
 	"radius-buildup/internal/modules/pppoe"
 
 	"github.com/robfig/cron/v3"
@@ -28,6 +29,9 @@ func InitCron() {
 
 	// 2. PPPoE Session Sync - Every 5 minutes
 	// cronRunner.AddFunc("*/5 * * * *", RunSessionSync)
+
+	// 3. OLT Auto Scan - Every 5 minutes
+	cronRunner.AddFunc("*/5 * * * *", RunOLTAutoScan)
 
 	// Start the cron scheduler asynchronously
 	cronRunner.Start()
@@ -83,4 +87,9 @@ func RunAutoIsolir() {
 	}
 
 	log.Printf("[CRON] Auto Isolir completed. Isolated %d/%d users.", count, len(users))
+}
+
+// RunOLTAutoScan scans all active OLTs via SNMP and saves results to database
+func RunOLTAutoScan() {
+	olt.ScanAllOLTs()
 }

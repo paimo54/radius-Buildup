@@ -20,8 +20,11 @@ interface OLT {
   password?: string;
   snmpCommunity?: string;
   snmp_community?: string;
+  snmpPort?: number;
   sshEnabled?: boolean;
+  sshPort?: number;
   telnetEnabled?: boolean;
+  telnetPort?: number;
   latitude: number;
   longitude: number;
   status: string;
@@ -107,8 +110,11 @@ export default function OLTsPage() {
     username: '',
     password: '',
     snmpCommunity: 'public',
+    snmpPort: '161',
     sshEnabled: true,
+    sshPort: '22',
     telnetEnabled: false,
+    telnetPort: '23',
     latitude: '',
     longitude: '',
     status: 'active',
@@ -188,8 +194,11 @@ export default function OLTsPage() {
       username: '',
       password: '',
       snmpCommunity: '',
+      snmpPort: '161',
       sshEnabled: true,
+      sshPort: '22',
       telnetEnabled: false,
+      telnetPort: '23',
       latitude: '',
       longitude: '',
       status: 'active',
@@ -217,8 +226,12 @@ export default function OLTsPage() {
           vendor: formData.vendor,
           username: formData.username,
           password: formData.password,
+          snmpCommunity: formData.snmpCommunity,
+          snmpPort: formData.snmpPort,
           sshEnabled: formData.sshEnabled,
+          sshPort: formData.sshPort,
           telnetEnabled: formData.telnetEnabled,
+          telnetPort: formData.telnetPort,
           oltId: editingOlt?.id, // Include oltId if editing existing OLT
         }),
       });
@@ -265,8 +278,11 @@ export default function OLTsPage() {
       username: olt.username || '',
       password: olt.password || '',
       snmpCommunity: community,
+      snmpPort: olt.snmpPort?.toString() || '161',
       sshEnabled: olt.sshEnabled !== undefined ? olt.sshEnabled : true,
+      sshPort: olt.sshPort?.toString() || '22',
       telnetEnabled: olt.telnetEnabled !== undefined ? olt.telnetEnabled : false,
+      telnetPort: olt.telnetPort?.toString() || '23',
       latitude: olt.latitude.toString(),
       longitude: olt.longitude.toString(),
       status: olt.status,
@@ -1015,8 +1031,11 @@ export default function OLTsPage() {
                     className="w-full px-2 py-1.5 text-xs border dark:border-gray-700 rounded dark:bg-gray-800"
                   >
                     <option value="">-- Select Vendor --</option>
-                    {[...new Set(oltProfiles.map(p => p.vendor))].sort().map(vendor => (
-                      <option key={vendor} value={vendor}>{vendor}</option>
+                    {(oltProfiles.length > 0 
+                      ? [...new Set(oltProfiles.map(p => p.vendor))].sort()
+                      : ['huawei', 'zte', 'fiberhome', 'nokia', 'hioso', 'hsgq', 'vsol', 'cdata', 'bdcom', 'other'].sort()
+                    ).map(vendor => (
+                      <option key={vendor} value={vendor}>{vendor.toUpperCase()}</option>
                     ))}
                   </select>
                 </div>
@@ -1058,19 +1077,31 @@ export default function OLTsPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-medium mb-1">{t('olt.snmpCommunity')}</label>
-                <input
-                  type="text"
-                  value={formData.snmpCommunity}
-                  onChange={(e) => setFormData({ ...formData, snmpCommunity: e.target.value })}
-                  placeholder="public"
-                  className="w-full px-2 py-1.5 text-xs border dark:border-gray-700 rounded dark:bg-gray-800"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-medium mb-1">{t('olt.snmpCommunity')}</label>
+                  <input
+                    type="text"
+                    value={formData.snmpCommunity}
+                    onChange={(e) => setFormData({ ...formData, snmpCommunity: e.target.value })}
+                    placeholder="public"
+                    className="w-full px-2 py-1.5 text-xs border dark:border-gray-700 rounded dark:bg-gray-800"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium mb-1">SNMP Port</label>
+                  <input
+                    type="number"
+                    value={formData.snmpPort}
+                    onChange={(e) => setFormData({ ...formData, snmpPort: e.target.value })}
+                    placeholder="161"
+                    className="w-full px-2 py-1.5 text-xs border dark:border-gray-700 rounded dark:bg-gray-800"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-end">
+                <div className="flex flex-col gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -1080,8 +1111,20 @@ export default function OLTsPage() {
                     />
                     <span className="text-xs">{t('olt.sshEnabled')}</span>
                   </label>
+                  {formData.sshEnabled && (
+                    <div>
+                      <label className="block text-[10px] font-medium mb-1">SSH Port</label>
+                      <input
+                        type="number"
+                        value={formData.sshPort}
+                        onChange={(e) => setFormData({ ...formData, sshPort: e.target.value })}
+                        placeholder="22"
+                        className="w-full px-2 py-1.5 text-xs border dark:border-gray-700 rounded dark:bg-gray-800"
+                      />
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-end">
+                <div className="flex flex-col gap-2">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -1091,6 +1134,18 @@ export default function OLTsPage() {
                     />
                     <span className="text-xs">{t('olt.telnetEnabled')}</span>
                   </label>
+                  {formData.telnetEnabled && (
+                    <div>
+                      <label className="block text-[10px] font-medium mb-1">Telnet Port</label>
+                      <input
+                        type="number"
+                        value={formData.telnetPort}
+                        onChange={(e) => setFormData({ ...formData, telnetPort: e.target.value })}
+                        placeholder="23"
+                        className="w-full px-2 py-1.5 text-xs border dark:border-gray-700 rounded dark:bg-gray-800"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 

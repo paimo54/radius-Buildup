@@ -58,15 +58,15 @@ func (s *TelnetSession) Login() error {
 		return fmt.Errorf("login failed or unexpected prompt: %w", err)
 	}
 
-	// Enter enable mode if password is provided
-	if s.olt.TelnetEnable != "" {
+	// Enter enable mode if telnet is enabled (and requires enable password)
+	if s.olt.TelnetEnable {
 		if err := s.send("enable"); err != nil {
 			return err
 		}
 		if err := s.expect("Password:"); err != nil {
 			return err
 		}
-		if err := s.send(s.olt.TelnetEnable); err != nil {
+		if err := s.send(s.olt.TelnetPass); err != nil {
 			return err
 		}
 		if err := s.expect("#"); err != nil {

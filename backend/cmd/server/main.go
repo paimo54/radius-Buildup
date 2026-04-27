@@ -7,6 +7,7 @@ import (
 	"radius-buildup/internal/config"
 	"radius-buildup/internal/database"
 	"radius-buildup/internal/middleware"
+	"radius-buildup/internal/models"
 	"radius-buildup/internal/modules/activity"
 	"radius-buildup/internal/modules/admin"
 	"radius-buildup/internal/modules/auth"
@@ -42,6 +43,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("❌ Failed to connect to database: %v", err)
 	}
+
+	// Auto-migrate OLT-related tables
+	database.DB.AutoMigrate(&models.OltOnu{})
 
 	// Initialize background cron jobs
 	cron.InitCron()
